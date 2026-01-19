@@ -25,8 +25,9 @@ Show a placeholder gallery UI for collected loot.
 ## Data / State
 - Read from session loot inventory
 
-## Open Questions
-- Placement in UI TBD
+## Decisions
+- Placement: a small HUD button opens a lightweight modal overlay with the loot list
+- Access: default hidden during gameplay except for the HUD button
 
 ## Definition of Done (DoD)
 - Loot gallery placeholder visible

@@ -170,7 +170,8 @@ If a response needs both perspectives, it will be split into two labeled section
 
 ### Version Control and Reviews
 
-- Use git for version control; commit small, focused changes.
+- Use git for version control; commit small, focused changes regularly.
+- When asked to perform git actions (branch, commit, PR), use the git-control MCP tools (not shell git).
 - Use pull requests (PRs) even as a solo developer to document decisions.
 - Tie PRs to milestones or specs when possible.
 

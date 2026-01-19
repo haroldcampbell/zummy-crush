@@ -16,9 +16,10 @@ Support boards with voids (gaps) where no tiles exist.
 - Board editor for creating masks
 
 ## Functional Requirements
-- Define a mask schema (boolean grid)
+- Define a mask schema (0/1 grid)
 - Void cells do not render tiles
 - Void cells are excluded from swaps and matches
+- Tiles fall through voids but cannot occupy void cells
 
 ## Non-Functional Requirements
 - Mask loading is deterministic
@@ -29,8 +30,11 @@ Support boards with voids (gaps) where no tiles exist.
 ## Data / State
 - Board definition includes mask
 
-## Open Questions
-- Mask file format (JSON schema) TBD
+## Decisions
+- Mask format: 2D array of 0/1 integers (1 = tile present, 0 = void)
+- Row/column order: rows top-to-bottom, columns left-to-right
+- Validation: mask dimensions must exactly match grid size
+- Visual: void cells render fully empty/transparent
 
 ## Definition of Done (DoD)
 - Voids render correctly and block interaction

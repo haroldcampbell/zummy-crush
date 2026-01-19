@@ -25,10 +25,14 @@
 - Use spec-driven development; link work to a milestone and spec.
 - Commit often with small, focused changes.
 - Use PRs, even for solo work.
+- When asked to perform git actions (branch, commit, PR), use the git-control MCP tools (not shell git).
 - Required git workflow:
-  1) Create a branch
-  2) Commit
-  3) PR into main
-  4) Merge
-  5) Delete branch
+    1. Create a branch
+    2. Commit
+    3. PR into main
+    4. Merge
+    5. Delete branch
 - Agents must comply with `docs/process.md`, `docs/principles.md`, and `docs/governance-decisions.md`.
+- At the start of each session, review the `docs`.
+- Ensure that you are aware of the guardrails that shouldn't be violated.
+- Review `specs/milestones.md` and the most recent session hand-off in `hand-offs` when trying to understand where to start next: recommend the most likely milestone or specs to work on next.

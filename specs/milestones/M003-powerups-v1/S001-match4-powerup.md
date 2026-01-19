@@ -16,6 +16,8 @@ Add a basic power-up that is created on a 4-in-a-row match.
 
 ## Functional Requirements
 - 4-match produces a distinct power-up tile
+- Power-up type: Line Clear
+- Line Clear orientation: horizontal match -> clear row, vertical match -> clear column
 
 ## Non-Functional Requirements
 - Power-up creation does not break cascades
@@ -26,8 +28,10 @@ Add a basic power-up that is created on a 4-in-a-row match.
 ## Data / State
 - Tile type includes power-up flag
 
-## Open Questions
-- Power-up effect (clear row or column) TBD
+## Decisions
+- Spawn location: if created by a swap, place on the swap destination tile
+- If created by cascade (no swap origin), place on the center-most tile of the match
+- For even-length matches, choose the center-most tile that is lower/right in grid order
 
 ## Definition of Done (DoD)
 - 4-match creates power-up tile

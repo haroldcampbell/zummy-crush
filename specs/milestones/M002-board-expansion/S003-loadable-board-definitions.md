@@ -17,8 +17,9 @@ Load board layouts from a static JSON file to allow multiple boards without code
 - Full board editor
 
 ## Functional Requirements
-- Board definition contains grid size and mask
+- Board definition contains grid size, mask, and metadata
 - Game uses board definition to initialize grid
+- Support multiple boards via an index file
 
 ## Non-Functional Requirements
 - Board file is easy to edit manually
@@ -29,8 +30,12 @@ Load board layouts from a static JSON file to allow multiple boards without code
 ## Data / State
 - Board definition source is local file
 
-## Open Questions
-- File location and naming convention TBD
+## Decisions
+- File location: `app/assets/boards/<theme>/board-<level>.json`
+- Index file: `app/assets/boards/index.json` lists themes and board file paths
+- Default selection: first entry in the index file
+- Immediate content: include an `easy` theme with 3 boards
+- Metadata fields (minimum): `id`, `name`, `theme`, `level`, `grid` (rows/cols), `mask`
 
 ## Definition of Done (DoD)
 - Board loads from JSON file
