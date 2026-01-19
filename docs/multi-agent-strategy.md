@@ -1,6 +1,7 @@
 # Multi-Agent Workflow Strategy
 
 ## Goal
+
 Enable multiple agents to work independently without duplicating effort or conflicting changes.
 
 ## Recommended Structure
@@ -12,11 +13,33 @@ Enable multiple agents to work independently without duplicating effort or confl
 ## Work Allocation Rules
 
 - Agents do not work on the same spec concurrently.
+- Agents do not work on the same milestone concurrently.
 - Each PR references:
-  - Milestone ID
-  - Spec ID
-  - Decisions made to unblock work
+    - Milestone ID
+    - Spec ID
+    - Decisions made to unblock work
 - If a spec depends on another, mark it explicitly in the spec.
+
+## Orchestration Process
+
+- Agents create lock files before starting work:
+    - `locks/milestone.MXXX.lock`
+    - `locks/spec.MXXX-SYYY.lock`
+    - Lock files include: agent name, branch name, start time, and short intent note
+- Agents will not start working on a spec if a corresponding lock file already exists
+- Source of truth for availability:
+    - `specs/milestones.md` for milestone availability
+    - `specs/milestones/<Milestone>/milestone.md` for spec availability
+- Once an agent has completed their work, they will:
+    - update the checklist for the specs and milestone
+    - create sesion hand-off, commit their code to the branch, and create the PRs
+    - remove the .lock files
+    - move on to the next available milestone
+
+## Lock TTL + Recovery
+
+- Lock TTL is 24 hours unless extended in the lock file.
+- If a lock is stale, agents must request user confirmation before removing it.
 
 ## Branching Convention
 
@@ -32,9 +55,16 @@ Enable multiple agents to work independently without duplicating effort or confl
 ## Spec Readiness Checklist
 
 Before work begins, confirm:
+
+- Local `main` is up to date
+- Lock files do not exist for the target milestone/spec
 - Scope and non-scope are explicit
 - Decisions are captured or flagged as open
 - Acceptance checklist is complete
+
+## Stop Conditions
+
+- If a spec requires a decision not captured, stop and request clarification before coding.
 
 ## Review Flow
 
