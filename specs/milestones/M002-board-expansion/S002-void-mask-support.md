@@ -1,0 +1,47 @@
+# Spec: M002-S002: Void Mask Support
+
+## Principles Reference
+
+- See `docs/principles.md` for non-negotiable workflow rules (including PR merge approval).
+
+## Problem Statement
+Support boards with voids (gaps) where no tiles exist.
+
+## Goals
+- Represent voids via a mask
+- Prevent swaps into voids
+- Ensure match detection ignores voids
+
+## Non-Goals
+- Board editor for creating masks
+
+## Functional Requirements
+- Define a mask schema (boolean grid)
+- Void cells do not render tiles
+- Void cells are excluded from swaps and matches
+
+## Non-Functional Requirements
+- Mask loading is deterministic
+
+## UX Notes
+- Void cells should be visually empty/neutral
+
+## Data / State
+- Board definition includes mask
+
+## Open Questions
+- Mask file format (JSON schema) TBD
+
+## Definition of Done (DoD)
+- Voids render correctly and block interaction
+- Match detection ignores voids
+
+## Out of Scope
+- Irregular board shapes beyond mask support
+
+## Acceptance Checklist
+
+- [ ] Spec reviewed
+- [ ] Implementation complete
+- [ ] Tests added/updated
+- [ ] Docs updated
