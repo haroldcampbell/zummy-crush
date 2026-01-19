@@ -52,6 +52,7 @@ This process governs how we move from ideas to specs to implementation. It prior
 - Each hand-off includes: summary, completed items, next steps, decisions, risks.
 - Hand-off date must not be later than the commit date.
 - When committing a hand-off, confirm the date aligns with the commit timestamp.
+- Sequence number (`nn`) resets per date (e.g., `2026-01-19-01`, `2026-01-19-02`, then `2026-01-20-01`).
 
 ## Guardrails
 
