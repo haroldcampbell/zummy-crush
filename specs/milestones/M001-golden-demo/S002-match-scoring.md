@@ -46,6 +46,12 @@ Detect matches on the 3x3 board, remove matches, refill tiles, and update score 
 - Score updates based on letters matched
 - Refill occurs after match
 
+## Decisions / Notes
+
+- Basic cascades are enabled to maximize points/joy.
+- Refill uses simple gravity without animations (advanced refill animations out of scope).
+- Tests: no automated tests in M001 POC (no harness yet).
+
 ## Out of Scope
 
 - Combo multipliers
@@ -53,7 +59,7 @@ Detect matches on the 3x3 board, remove matches, refill tiles, and update score 
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
+- [x] Spec reviewed
+- [x] Implementation complete
 - [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Docs updated

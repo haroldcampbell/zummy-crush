@@ -30,9 +30,9 @@ Deliver a 60–120 second playable session that demonstrates the core loop: swap
 
 ## Specs
 
-- [ ] S001 - Core Board + Input
-- [ ] S002 - Match Detection + Scoring
-- [ ] S003 - Blitz Session + HUD
+- [x] S001 - Core Board + Input
+- [x] S002 - Match Detection + Scoring
+- [x] S003 - Blitz Session + HUD
 
 ## Dependencies
 
