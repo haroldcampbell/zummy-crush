@@ -46,6 +46,12 @@ Provide a short, time-limited session with a simple HUD to track time and score.
 - Session ends on zero
 - Reset works consistently
 
+## Decisions / Notes
+
+- Timer displays whole seconds for clarity.
+- Session input is disabled when time expires.
+- Tests: no automated tests in M001 POC (no harness yet).
+
 ## Out of Scope
 
 - Best score tracking
@@ -53,7 +59,7 @@ Provide a short, time-limited session with a simple HUD to track time and score.
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
+- [x] Spec reviewed
+- [x] Implementation complete
 - [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Docs updated

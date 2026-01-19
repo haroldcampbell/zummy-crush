@@ -52,6 +52,7 @@ Create a minimal, responsive board that allows tile swaps and visibly reverts in
 ## Decisions / Notes
 
 - Implementation note: S001 treats all swaps as invalid and swaps back (match detection arrives in S002).
+- Tests: no automated tests in M001 POC (no harness yet).
 
 ## Out of Scope
 
@@ -60,7 +61,7 @@ Create a minimal, responsive board that allows tile swaps and visibly reverts in
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
+- [x] Spec reviewed
+- [x] Implementation complete
 - [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Docs updated
