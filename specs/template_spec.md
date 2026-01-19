@@ -1,5 +1,9 @@
 # Spec: MXXX-SXXX: <name>
 
+## Principles Reference
+
+- See `docs/principles.md` for non-negotiable workflow rules (including PR merge approval).
+
 ## Problem Statement
 
 ## Goals

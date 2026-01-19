@@ -12,6 +12,8 @@
 
 - If uncertain about a change (especially non-reversible changes), stop and ask for confirmation.
 - Avoid irreversible operations without explicit user direction.
+- Never merge PRs into `main` without explicit user approval.
+- Agents must adhere to `docs/principles.md`.
 
 ## Decision Records
 
