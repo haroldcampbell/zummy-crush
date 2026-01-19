@@ -1,11 +1,20 @@
 (() => {
   const canvas = document.getElementById("board");
   const ctx = canvas.getContext("2d");
+  const scoreEl = document.getElementById("score");
 
   const letters = ["A", "B", "C", "D", "E"];
+  const letterValues = {
+    A: 10 ** 2,
+    B: 10 ** 3,
+    C: 10 ** 4,
+    D: 10 ** 5,
+    E: 10 ** 6,
+  };
+
   const gridSize = 3;
   const state = {
-    tiles: [],
+    grid: [],
     tileSize: 0,
     gap: 8,
     padding: 12,
@@ -13,6 +22,7 @@
     dragging: false,
     animation: null,
     inputLocked: false,
+    score: 0,
   };
 
   function resizeCanvas() {
@@ -29,16 +39,22 @@
     return letters[Math.floor(Math.random() * letters.length)];
   }
 
-  function initTiles() {
-    state.tiles = [];
+  function createTile(row, col) {
+    return {
+      row,
+      col,
+      letter: randomLetter(),
+    };
+  }
+
+  function initGrid() {
+    state.grid = [];
     for (let row = 0; row < gridSize; row += 1) {
+      const rowTiles = [];
       for (let col = 0; col < gridSize; col += 1) {
-        state.tiles.push({
-          row,
-          col,
-          letter: randomLetter(),
-        });
+        rowTiles.push(createTile(row, col));
       }
+      state.grid.push(rowTiles);
     }
   }
 
@@ -49,10 +65,14 @@
   }
 
   function getTileAt(x, y) {
-    for (const tile of state.tiles) {
-      const rect = tileRect(tile.row, tile.col);
-      if (x >= rect.x && x <= rect.x + rect.size && y >= rect.y && y <= rect.y + rect.size) {
-        return tile;
+    for (let row = 0; row < gridSize; row += 1) {
+      for (let col = 0; col < gridSize; col += 1) {
+        const tile = state.grid[row][col];
+        if (!tile) continue;
+        const rect = tileRect(tile.row, tile.col);
+        if (x >= rect.x && x <= rect.x + rect.size && y >= rect.y && y <= rect.y + rect.size) {
+          return tile;
+        }
       }
     }
     return null;
@@ -99,8 +119,11 @@
     ctx.fillStyle = "#fdfbf8";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    for (const tile of state.tiles) {
-      drawTile(tile);
+    for (let row = 0; row < gridSize; row += 1) {
+      for (let col = 0; col < gridSize; col += 1) {
+        const tile = state.grid[row][col];
+        if (tile) drawTile(tile);
+      }
     }
 
     requestAnimationFrame(render);
@@ -119,6 +142,8 @@
     a.col = b.col;
     b.row = tempRow;
     b.col = tempCol;
+    state.grid[a.row][a.col] = a;
+    state.grid[b.row][b.col] = b;
   }
 
   function animateSwap(a, b, onComplete) {
@@ -150,6 +175,99 @@
     }
   }
 
+  function findMatches() {
+    const matches = new Set();
+
+    for (let row = 0; row < gridSize; row += 1) {
+      let runStart = 0;
+      for (let col = 1; col <= gridSize; col += 1) {
+        const current = col < gridSize ? state.grid[row][col] : null;
+        const prev = state.grid[row][col - 1];
+        const isSame = current && prev && current.letter === prev.letter;
+        if (!isSame) {
+          const runLength = col - runStart;
+          if (runLength >= 3) {
+            for (let c = runStart; c < col; c += 1) {
+              matches.add(`${row},${c}`);
+            }
+          }
+          runStart = col;
+        }
+      }
+    }
+
+    for (let col = 0; col < gridSize; col += 1) {
+      let runStart = 0;
+      for (let row = 1; row <= gridSize; row += 1) {
+        const current = row < gridSize ? state.grid[row][col] : null;
+        const prev = state.grid[row - 1][col];
+        const isSame = current && prev && current.letter === prev.letter;
+        if (!isSame) {
+          const runLength = row - runStart;
+          if (runLength >= 3) {
+            for (let r = runStart; r < row; r += 1) {
+              matches.add(`${r},${col}`);
+            }
+          }
+          runStart = row;
+        }
+      }
+    }
+
+    return matches;
+  }
+
+  function scoreMatches(matchSet) {
+    let points = 0;
+    for (const key of matchSet) {
+      const [row, col] = key.split(",").map(Number);
+      const tile = state.grid[row][col];
+      if (tile) points += letterValues[tile.letter] || 0;
+    }
+    return points;
+  }
+
+  function clearMatches(matchSet) {
+    for (const key of matchSet) {
+      const [row, col] = key.split(",").map(Number);
+      state.grid[row][col] = null;
+    }
+  }
+
+  function collapseColumns() {
+    for (let col = 0; col < gridSize; col += 1) {
+      const columnTiles = [];
+      for (let row = gridSize - 1; row >= 0; row -= 1) {
+        const tile = state.grid[row][col];
+        if (tile) columnTiles.push(tile);
+      }
+
+      for (let row = gridSize - 1; row >= 0; row -= 1) {
+        const tile = columnTiles.shift() || createTile(row, col);
+        tile.row = row;
+        tile.col = col;
+        state.grid[row][col] = tile;
+      }
+    }
+  }
+
+  function resolveMatches() {
+    let matched = findMatches();
+    let didMatch = false;
+
+    while (matched.size > 0) {
+      didMatch = true;
+      const points = scoreMatches(matched);
+      state.score += points;
+      scoreEl.textContent = state.score.toString();
+      clearMatches(matched);
+      collapseColumns();
+      matched = findMatches();
+    }
+
+    return didMatch;
+  }
+
   function handleSwap(targetTile) {
     const selected = state.selected;
     if (!selected || !targetTile || selected === targetTile) return;
@@ -161,10 +279,12 @@
 
     animateSwap(first, second, () => {
       swapTiles(first, second);
-      // No match detection in S001; always revert swap.
-      animateSwap(first, second, () => {
-        swapTiles(first, second);
-      });
+      const matched = resolveMatches();
+      if (!matched) {
+        animateSwap(first, second, () => {
+          swapTiles(first, second);
+        });
+      }
     });
   }
 
@@ -217,7 +337,8 @@
   window.addEventListener("pointerup", onPointerUp);
 
   resizeCanvas();
-  initTiles();
+  initGrid();
+  scoreEl.textContent = "0";
   requestAnimationFrame(render);
   requestAnimationFrame(tick);
 })();

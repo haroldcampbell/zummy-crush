@@ -31,6 +31,31 @@ body {
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  display: grid;
+  gap: 12px;
+}
+
+.hud {
+  display: flex;
+  justify-content: flex-start;
+  gap: 16px;
+}
+
+.hud-item {
+  display: grid;
+  gap: 2px;
+}
+
+.hud-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  color: #5a4c43;
+}
+
+.hud-value {
+  font-size: 20px;
+  font-weight: 700;
 }
 
 #board {
