@@ -57,3 +57,4 @@ This process governs how we move from ideas to specs to implementation. It prior
 - No work outside the repo
 - No destructive changes unless explicitly requested
 - ADRs and XDRs are immutable; changes require a new record
+- Governance decisions in `docs/governance-decisions.md` are mandatory.

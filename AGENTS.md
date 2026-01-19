@@ -18,6 +18,7 @@
 ## Decision Records
 
 - ADRs and XDRs are non-breakable once accepted; changes require a new record that supersedes the old one.
+- Governance decisions in `docs/governance-decisions.md` are enforced like ADRs and must not be violated.
 
 ## Workflow
 
@@ -30,3 +31,4 @@
   3) PR into main
   4) Merge
   5) Delete branch
+- Agents must comply with `docs/process.md`, `docs/principles.md`, and `docs/governance-decisions.md`.
