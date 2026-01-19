@@ -2,7 +2,7 @@
 
 ## Principles Reference
 
-- See `docs/principles.md` for non-negotiable workflow rules (including PR merge approval).
+- Adhere to `docs/principles.md`.
 
 ## Problem Statement
 
