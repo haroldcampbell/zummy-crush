@@ -1,0 +1,17 @@
+# Logs
+log/**
+logs/**
+*.log
+
+# OS
+.DS_Store
+
+# Node
+node_modules/
+
+# Rust
+/target
+
+# Editor
+.vscode/
+.idea/
