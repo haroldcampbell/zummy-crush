@@ -11,9 +11,14 @@
       <section class="board-panel">
         <header class="hud">
           <div class="hud-item">
+            <span class="hud-label">Time</span>
+            <span id="timer" class="hud-value">60</span>
+          </div>
+          <div class="hud-item">
             <span class="hud-label">Score</span>
             <span id="score" class="hud-value">0</span>
           </div>
+          <button id="reset" class="hud-button" type="button">Reset</button>
         </header>
         <canvas id="board" aria-label="Game board" role="img"></canvas>
       </section>
