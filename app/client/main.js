@@ -2,6 +2,8 @@
   const canvas = document.getElementById("board");
   const ctx = canvas.getContext("2d");
   const scoreEl = document.getElementById("score");
+  const timerEl = document.getElementById("timer");
+  const resetButton = document.getElementById("reset");
 
   const letters = ["A", "B", "C", "D", "E"];
   const letterValues = {
@@ -13,6 +15,7 @@
   };
 
   const gridSize = 3;
+  const defaultDurationMs = 60_000;
   const state = {
     grid: [],
     tileSize: 0,
@@ -23,6 +26,12 @@
     animation: null,
     inputLocked: false,
     score: 0,
+    session: {
+      durationMs: defaultDurationMs,
+      remainingMs: defaultDurationMs,
+      active: false,
+      startTime: null,
+    },
   };
 
   function resizeCanvas() {
@@ -56,6 +65,29 @@
       }
       state.grid.push(rowTiles);
     }
+  }
+
+  function resetScore() {
+    state.score = 0;
+    scoreEl.textContent = "0";
+  }
+
+  function startSession() {
+    state.session.remainingMs = state.session.durationMs;
+    state.session.startTime = performance.now();
+    state.session.active = true;
+    timerEl.textContent = Math.ceil(state.session.remainingMs / 1000).toString();
+  }
+
+  function endSession() {
+    state.session.active = false;
+    timerEl.textContent = "0";
+  }
+
+  function resetGame() {
+    initGrid();
+    resetScore();
+    startSession();
   }
 
   function tileRect(row, col) {
@@ -296,7 +328,7 @@
   }
 
   function onPointerDown(event) {
-    if (state.inputLocked) return;
+    if (state.inputLocked || !state.session.active) return;
     const { x, y } = pointerToCanvas(event);
     const tile = getTileAt(x, y);
     if (!tile) return;
@@ -305,7 +337,7 @@
   }
 
   function onPointerUp(event) {
-    if (state.inputLocked) return;
+    if (state.inputLocked || !state.session.active) return;
     if (!state.dragging) return;
     const { x, y } = pointerToCanvas(event);
     const tile = getTileAt(x, y);
@@ -314,7 +346,7 @@
   }
 
   function onPointerMove(event) {
-    if (!state.dragging || state.inputLocked) return;
+    if (!state.dragging || state.inputLocked || !state.session.active) return;
     const { x, y } = pointerToCanvas(event);
     const tile = getTileAt(x, y);
     if (tile && tile !== state.selected) {
@@ -323,8 +355,18 @@
     }
   }
 
+  function updateTimer(timestamp) {
+    if (!state.session.active || !state.session.startTime) return;
+    const elapsed = timestamp - state.session.startTime;
+    const remaining = Math.max(state.session.durationMs - elapsed, 0);
+    state.session.remainingMs = remaining;
+    timerEl.textContent = Math.ceil(remaining / 1000).toString();
+    if (remaining <= 0) endSession();
+  }
+
   function tick(timestamp) {
     updateAnimation(timestamp);
+    updateTimer(timestamp);
     requestAnimationFrame(tick);
   }
 
@@ -335,10 +377,10 @@
   canvas.addEventListener("pointerdown", onPointerDown);
   canvas.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", onPointerUp);
+  resetButton.addEventListener("click", resetGame);
 
   resizeCanvas();
-  initGrid();
-  scoreEl.textContent = "0";
+  resetGame();
   requestAnimationFrame(render);
   requestAnimationFrame(tick);
 })();
