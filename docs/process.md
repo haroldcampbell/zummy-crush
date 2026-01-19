@@ -50,6 +50,8 @@ This process governs how we move from ideas to specs to implementation. It prior
 - A hand-off entry is created at the end of a session or when pausing work.
 - Hand-offs are stored in `hand-offs/` with milestone/spec identifiers.
 - Each hand-off includes: summary, completed items, next steps, decisions, risks.
+- Hand-off date must not be later than the commit date.
+- When committing a hand-off, confirm the date aligns with the commit timestamp.
 
 ## Guardrails
 
