@@ -1,5 +1,9 @@
 # Milestone: MXXX - <name>
 
+## Principles Reference
+
+- Adhere to `docs/principles.md`
+
 ## Goal
 
 ## Scope (In)

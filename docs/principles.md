@@ -7,3 +7,4 @@
 - Write tests around core logic and regressions.
 - Separate fun-validation from scale-building.
 - Treat ADRs/XDRs as durable decisions (supersede, don’t overwrite).
+- Never merge PRs into `main` without explicit user approval.

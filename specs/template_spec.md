@@ -1,5 +1,9 @@
 # Spec: MXXX-SXXX: <name>
 
+## Principles Reference
+
+- Adhere to `docs/principles.md`.
+
 ## Problem Statement
 
 ## Goals
