@@ -49,6 +49,10 @@ Create a minimal, responsive board that allows tile swaps and visibly reverts in
 - Invalid swap visibly reverts
 - Touch interaction works on mobile-sized viewport
 
+## Decisions / Notes
+
+- Implementation note: S001 treats all swaps as invalid and swaps back (match detection arrives in S002).
+
 ## Out of Scope
 
 - Match resolution and refill
