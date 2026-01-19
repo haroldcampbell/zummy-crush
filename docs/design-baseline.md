@@ -12,9 +12,9 @@ Purpose: Provide shared UI/UX defaults used by specs so implementation is consis
 
 - Board size (M001): 3 x 3
 - Board size (post-M001): 8 x 8
-- Board pixel size: TBD
-- Tile size: TBD
-- Tile spacing/gap: TBD
+- Board pixel size: 300px baseline (scale up to 320px on wider viewports)
+- Tile size: 34px baseline
+- Tile spacing/gap: 4px baseline
 
 ## Typography
 
@@ -33,7 +33,11 @@ Purpose: Provide shared UI/UX defaults used by specs so implementation is consis
 - Drag-to-swap (M001)
 - Swap-back animation on invalid move
 - Selection highlight style: TBD
-- Animation timings: TBD
+- Animation timings (configurable): swap 0.5s, cascade 0.5s, match resolve 0.8s
+
+## Number Formatting
+
+- Score uses thousands separators (e.g., 12,345)
 
 ## Audio (Later Phase)
 

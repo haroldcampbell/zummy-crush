@@ -28,8 +28,13 @@ Add simple micro-reward triggers (visual feedback) based on gameplay.
 ## Data / State
 - Threshold counters
 
-## Open Questions
-- Reward thresholds TBD
+## Decisions
+- Trigger sources: score milestones + match streaks
+- Default thresholds (configurable):
+  - Score: every 1,000 points
+  - Streaks: 3 in a row and 5 in a row
+- Frequency control: 5-second cooldown per trigger type, max 6 micro-reward triggers per board session
+- Feedback: lightweight animation (sparkle burst) plus small toast/banner
 
 ## Definition of Done (DoD)
 - Micro-reward triggers fire and display feedback

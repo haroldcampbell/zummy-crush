@@ -16,6 +16,7 @@ Add a power-up created from a 5-in-a-row match.
 
 ## Functional Requirements
 - 5-match produces a distinct power-up tile
+- Power-up type: Color Clear (clears all tiles of a letter)
 
 ## Non-Functional Requirements
 - Power-up creation does not break cascades
@@ -26,8 +27,10 @@ Add a power-up created from a 5-in-a-row match.
 ## Data / State
 - Tile type includes power-up flag
 
-## Open Questions
-- Power-up effect (clear all of a letter? area?) TBD
+## Decisions
+- Spawn location: if created by a swap, place on the swap destination tile
+- If created by cascade (no swap origin), place on the center-most tile of the match
+- For even-length matches, choose the center-most tile that is lower/right in grid order
 
 ## Definition of Done (DoD)
 - 5-match creates power-up tile

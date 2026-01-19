@@ -23,9 +23,11 @@ Scale the board from 3x3 to 8x8 while keeping the board responsive and readable 
 
 - Board renders 8x8 tiles
 - Swap and match logic works at 8x8
-- Remove the timer from the board
+- Remove the timer from the board (UI and underlying timer logic)
 - Animations happen a bit slower so that user can see them
 - Improve game score readability (add 000s comma)
+- Grid size is configurable with a default of 8x8
+- Animation timings are configurable via a local config JSON
 
 ## Non-Functional Requirements
 
@@ -39,9 +41,13 @@ Scale the board from 3x3 to 8x8 while keeping the board responsive and readable 
 
 - Grid size becomes configurable
 
-## Open Questions
+## Decisions
 
-- TBD: target tile size and spacing for readability
+- Target baseline viewport: 360x640 (see `docs/design-baseline.md`)
+- Baseline board width: 300px (scales up to 320px on wider viewports)
+- Baseline tile size: 34px with 4px gaps
+- Animation defaults (configurable): swap 0.5s, cascade 0.5s, match resolve 0.8s
+- Config location: `app/assets/config/gameplay.json`
 
 ## Definition of Done (DoD)
 

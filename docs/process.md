@@ -13,12 +13,14 @@ This process governs how we move from ideas to specs to implementation. It prior
 4. Implementation on branch
     - Work happens on a feature branch (not on main).
     - Main is protected by policy: no direct commits.
+    - When asked to perform git actions (branch, commit, PR), use the git-control MCP tools (not shell git).
 5. Spec assignment decision
     - Decide whether the agent works on a single spec or multiple specs.
 6. DoD checks
     - Spec and milestone DoDs are verified and checked off.
 7. Commit + PR
     - Each spec results in a git commit and a PR (or one PR per milestone if needed).
+    - Commit regularly with small, focused changes to reduce risk.
     - PRs are always from a branch into main.
     - Required workflow:
         1. Create a branch
