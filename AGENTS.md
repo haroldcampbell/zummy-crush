@@ -22,4 +22,9 @@
 - Use spec-driven development; link work to a milestone and spec.
 - Commit often with small, focused changes.
 - Use PRs, even for solo work.
-
+- Required git workflow:
+  1) Create a branch
+  2) Commit
+  3) PR into main
+  4) Merge
+  5) Delete branch
