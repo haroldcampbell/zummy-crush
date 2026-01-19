@@ -14,6 +14,7 @@ This process governs how we move from ideas to specs to implementation. It prior
     - Work happens on a feature branch (not on main).
     - Main is protected by policy: no direct commits.
     - When asked to perform git actions (branch, commit, PR), use the git-control MCP tools (not shell git).
+    - Follow the Multi-Agent Kickoff Checklist in `docs/multi-agent-strategy.md` when working in parallel.
 5. Spec assignment decision
     - Decide whether the agent works on a single spec or multiple specs.
 6. DoD checks
