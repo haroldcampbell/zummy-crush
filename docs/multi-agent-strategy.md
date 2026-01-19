@@ -20,6 +20,12 @@ Enable multiple agents to work independently without duplicating effort or confl
     - Decisions made to unblock work
 - If a spec depends on another, mark it explicitly in the spec.
 
+## Assignment Protocol
+
+- The user (or a designated coordinator) assigns milestones/specs in a shared note or hand-off.
+- Agents claim assignments by creating lock files with the assigned milestone/spec and their branch name.
+- If no assignment exists, agents should stop and ask for assignment before creating locks.
+
 ## Orchestration Process
 
 - Agents create lock files before starting work:
