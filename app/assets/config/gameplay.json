@@ -1,17 +1,37 @@
 {
-  "grid": {
-    "rows": 8,
-    "cols": 8
+  "fallbackGridDimension": {
+    "rows": 0,
+    "cols": 0
   },
   "board": {
     "gap": 8,
-    "padding": 8,
-    "maxWidth": 320
+    "padding": 16,
+    "maxWidth": 640
   },
   "animations": {
     "swapMs": 250,
     "cascadeMs": 80,
-    "matchResolveMs": 150,
-    "cascadeStaggerMs": 80
+    "matchResolveMs": 40,
+    "cascadeStaggerMs": {
+      "min": 5,
+      "max": 10
+    }
+  },
+  "physics": {
+    "enabled": true,
+    "gravityPxPerMs": 0.3,
+    "collisionDecel": 0.9,
+    "bounceElasticity": 2.5,
+    "repulsion": {
+      "radius": 0,
+      "strength": 1,
+      "decayMs": 400,
+      "tapBoost": 0.35
+    },
+    "tap": {
+      "scaleDown": 0.08,
+      "scaleDurationMs": 140
+    },
+    "cascadeSpacingGapMultiplier": 2
   }
 }
