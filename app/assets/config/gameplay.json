@@ -22,12 +22,16 @@
     "gravityPxPerMs": 0.3,
     "collisionDecel": 0.9,
     "bounceElasticity": 2.5,
-    "repulsionRadius": 0,
-    "repulsionStrength": 1,
-    "repulsionDecayMs": 400,
-    "tapRepulsionBoost": 0.35,
-    "tapScaleDown": 0.08,
-    "tapScaleDurationMs": 140,
+    "repulsion": {
+      "radius": 0,
+      "strength": 1,
+      "decayMs": 400,
+      "tapBoost": 0.35
+    },
+    "tap": {
+      "scaleDown": 0.08,
+      "scaleDurationMs": 140
+    },
     "cascadeSpacingGapMultiplier": 2
   }
 }

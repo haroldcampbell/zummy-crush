@@ -46,12 +46,16 @@ const defaultConfig = {
     gravityPxPerMs: 1.2,
     collisionDecel: 0.9,
     bounceElasticity: 0.2,
-    repulsionRadius: 10,
-    repulsionStrength: 6,
-    repulsionDecayMs: 400,
-    tapRepulsionBoost: 0.35,
-    tapScaleDown: 0.08,
-    tapScaleDurationMs: 140,
+    repulsion: {
+      radius: 10,
+      strength: 6,
+      decayMs: 400,
+      tapBoost: 0.35,
+    },
+    tap: {
+      scaleDown: 0.08,
+      scaleDurationMs: 140,
+    },
     cascadeSpacingGapMultiplier: 2,
   },
 };
@@ -236,8 +240,8 @@ function render(timestamp) {
         const scale = computeTapScale(
           state.now,
           tile.tapImpactStart,
-          state.config.physics.tapScaleDurationMs,
-          state.config.physics.tapScaleDown
+          state.config.physics.tap.scaleDurationMs,
+          state.config.physics.tap.scaleDown
         );
         drawTile(tile, offset, scale);
       }
@@ -375,7 +379,7 @@ function updateTileEffects(dt) {
       tile.repulseBoost = decayBoost(
         tile.repulseBoost || 0,
         dt,
-        state.config.physics.repulsionDecayMs
+        state.config.physics.repulsion.decayMs
       );
     }
   }
@@ -539,7 +543,7 @@ function onPointerDown(event) {
   if (!tile) return;
   state.selected = tile;
   tile.repulseBoost = Math.min(
-    (tile.repulseBoost || 0) + state.config.physics.tapRepulsionBoost,
+    (tile.repulseBoost || 0) + state.config.physics.repulsion.tapBoost,
     1
   );
   tile.tapImpactStart = state.now;

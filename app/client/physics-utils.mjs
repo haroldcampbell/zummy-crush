@@ -20,8 +20,9 @@ export function computeRepulsionOffsets(tiles, positions, tileSize, physics, boo
 
   if (!physics.enabled) return offsets;
 
-  const effectiveRadius = tileSize + physics.repulsionRadius;
-  const maxOffset = Math.max(physics.repulsionStrength, 0);
+  const repulsion = physics.repulsion || { radius: 0, strength: 0 };
+  const effectiveRadius = tileSize + repulsion.radius;
+  const maxOffset = Math.max(repulsion.strength, 0);
 
   for (let i = 0; i < tiles.length; i += 1) {
     for (let j = i + 1; j < tiles.length; j += 1) {
@@ -39,8 +40,8 @@ export function computeRepulsionOffsets(tiles, positions, tileSize, physics, boo
 
       const boostA = boosts.get(tileA) || 0;
       const boostB = boosts.get(tileB) || 0;
-      const strengthA = physics.repulsionStrength * (1 + boostA);
-      const strengthB = physics.repulsionStrength * (1 + boostB);
+      const strengthA = repulsion.strength * (1 + boostA);
+      const strengthB = repulsion.strength * (1 + boostB);
       const strength = (strengthA + strengthB) * 0.5;
       const push = (overlap / effectiveRadius) * strength;
       const nx = dx / dist;
