@@ -23,7 +23,7 @@ const letterValues = {
 };
 
 const defaultConfig = {
-  grid: {
+  fallbackGridDimension: {
     rows: 8,
     cols: 8,
   },
@@ -64,9 +64,13 @@ const scoreFormatter = new Intl.NumberFormat("en-US");
 
 const state = {
   grid: [],
-  gridRows: defaultConfig.grid.rows,
-  gridCols: defaultConfig.grid.cols,
-  mask: createMask(defaultConfig.grid.rows, defaultConfig.grid.cols, 1),
+  gridRows: defaultConfig.fallbackGridDimension.rows,
+  gridCols: defaultConfig.fallbackGridDimension.cols,
+  mask: createMask(
+    defaultConfig.fallbackGridDimension.rows,
+    defaultConfig.fallbackGridDimension.cols,
+    1
+  ),
   tileSize: 0,
   gap: defaultConfig.board.gap,
   padding: defaultConfig.board.padding,
@@ -576,13 +580,17 @@ function normalizeBoardDefinition(board) {
       name: "Default Board",
       theme: "default",
       level: 1,
-      grid: { ...state.config.grid },
-      mask: createMask(state.config.grid.rows, state.config.grid.cols, 1),
+      grid: { ...state.config.fallbackGridDimension },
+      mask: createMask(
+        state.config.fallbackGridDimension.rows,
+        state.config.fallbackGridDimension.cols,
+        1
+      ),
     };
   }
 
-  const rows = Number(board.grid.rows) || state.config.grid.rows;
-  const cols = Number(board.grid.cols) || state.config.grid.cols;
+  const rows = Number(board.grid.rows) || state.config.fallbackGridDimension.rows;
+  const cols = Number(board.grid.cols) || state.config.fallbackGridDimension.cols;
   const mask = normalizeMask(board.mask, rows, cols);
 
   return {
@@ -613,7 +621,10 @@ async function loadConfig() {
   return {
     ...defaultConfig,
     ...config,
-    grid: { ...defaultConfig.grid, ...(config.grid || {}) },
+    fallbackGridDimension: {
+      ...defaultConfig.fallbackGridDimension,
+      ...(config.fallbackGridDimension || {}),
+    },
     board: { ...defaultConfig.board, ...(config.board || {}) },
     animations: { ...defaultConfig.animations, ...(config.animations || {}) },
     physics: { ...defaultConfig.physics, ...(config.physics || {}) },

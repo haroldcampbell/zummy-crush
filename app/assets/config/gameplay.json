@@ -1,12 +1,12 @@
 {
-  "grid": {
-    "rows": 8,
-    "cols": 8
+  "fallbackGridDimension": {
+    "rows": 0,
+    "cols": 0
   },
   "board": {
     "gap": 8,
-    "padding": 8,
-    "maxWidth": 320
+    "padding": 16,
+    "maxWidth": 640
   },
   "animations": {
     "swapMs": 250,
