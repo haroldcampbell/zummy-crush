@@ -24,9 +24,9 @@ Expand the core board to 8x8, support voids (gaps), and allow loadable board def
 - Boards can be loaded from a definition file
 
 ## Specs
-- [ ] S001 - 8x8 Board Layout
-- [ ] S002 - Void Mask Support
-- [ ] S003 - Loadable Board Definitions
+- [x] S001 - 8x8 Board Layout
+- [x] S002 - Void Mask Support
+- [x] S003 - Loadable Board Definitions
 
 ## Dependencies
 - M001 POC

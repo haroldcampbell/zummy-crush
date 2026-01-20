@@ -1,0 +1,16 @@
+{
+  "grid": {
+    "rows": 8,
+    "cols": 8
+  },
+  "board": {
+    "gap": 4,
+    "padding": 8,
+    "maxWidth": 320
+  },
+  "animations": {
+    "swapMs": 500,
+    "cascadeMs": 500,
+    "matchResolveMs": 800
+  }
+}

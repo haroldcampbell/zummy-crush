@@ -26,7 +26,7 @@ body {
 
 .board-panel {
   width: 100%;
-  max-width: 420px;
+  max-width: 360px;
   background: var(--board-bg);
   border-radius: 16px;
   padding: 16px;
@@ -37,7 +37,7 @@ body {
 
 .hud {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
 }
@@ -73,9 +73,10 @@ body {
 }
 
 #board {
-  width: 100%;
+  width: min(var(--board-max-width, 320px), 100%);
   height: auto;
   display: block;
+  justify-self: center;
   touch-action: none;
   background: #fdfbf8;
   border-radius: 12px;

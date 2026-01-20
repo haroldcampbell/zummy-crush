@@ -1,386 +1,413 @@
-(() => {
-  const canvas = document.getElementById("board");
-  const ctx = canvas.getContext("2d");
-  const scoreEl = document.getElementById("score");
-  const timerEl = document.getElementById("timer");
-  const resetButton = document.getElementById("reset");
+import {
+  buildGrid,
+  clearMatches,
+  collapseColumns,
+  createMask,
+  findMatches,
+  normalizeMask,
+} from "./board-logic.mjs";
 
-  const letters = ["A", "B", "C", "D", "E"];
-  const letterValues = {
-    A: 10 ** 2,
-    B: 10 ** 3,
-    C: 10 ** 4,
-    D: 10 ** 5,
-    E: 10 ** 6,
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+const scoreEl = document.getElementById("score");
+const resetButton = document.getElementById("reset");
+
+const letters = ["A", "B", "C", "D", "E"];
+const letterValues = {
+  A: 10 ** 2,
+  B: 10 ** 3,
+  C: 10 ** 4,
+  D: 10 ** 5,
+  E: 10 ** 6,
+};
+
+const defaultConfig = {
+  grid: {
+    rows: 8,
+    cols: 8,
+  },
+  board: {
+    gap: 4,
+    padding: 8,
+    maxWidth: 320,
+  },
+  animations: {
+    swapMs: 500,
+    cascadeMs: 500,
+    matchResolveMs: 800,
+  },
+};
+
+const scoreFormatter = new Intl.NumberFormat("en-US");
+
+const state = {
+  grid: [],
+  gridRows: defaultConfig.grid.rows,
+  gridCols: defaultConfig.grid.cols,
+  mask: createMask(defaultConfig.grid.rows, defaultConfig.grid.cols, 1),
+  tileSize: 0,
+  gap: defaultConfig.board.gap,
+  padding: defaultConfig.board.padding,
+  selected: null,
+  dragging: false,
+  animation: null,
+  inputLocked: false,
+  score: 0,
+  config: defaultConfig,
+  boardDefinition: null,
+};
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function updateScore() {
+  scoreEl.textContent = scoreFormatter.format(state.score);
+}
+
+function resizeCanvas() {
+  const width = canvas.clientWidth;
+  canvas.width = width * window.devicePixelRatio;
+  canvas.height = width * window.devicePixelRatio;
+  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+  const totalGap = state.gap * (state.gridCols - 1);
+  const available = width - state.padding * 2 - totalGap;
+  state.tileSize = Math.floor(available / state.gridCols);
+}
+
+function randomLetter() {
+  return letters[Math.floor(Math.random() * letters.length)];
+}
+
+function createTile(row, col) {
+  return {
+    row,
+    col,
+    letter: randomLetter(),
   };
+}
 
-  const gridSize = 3;
-  const defaultDurationMs = 60_000;
-  const state = {
-    grid: [],
-    tileSize: 0,
-    gap: 8,
-    padding: 12,
-    selected: null,
-    dragging: false,
-    animation: null,
-    inputLocked: false,
-    score: 0,
-    session: {
-      durationMs: defaultDurationMs,
-      remainingMs: defaultDurationMs,
-      active: false,
-      startTime: null,
-    },
-  };
+function initGrid() {
+  state.grid = buildGrid(state.gridRows, state.gridCols, state.mask, createTile);
+}
 
-  function resizeCanvas() {
-    const width = canvas.clientWidth;
-    canvas.width = width * window.devicePixelRatio;
-    canvas.height = width * window.devicePixelRatio;
-    ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
-    const totalGap = state.gap * (gridSize - 1);
-    const available = width - state.padding * 2 - totalGap;
-    state.tileSize = Math.floor(available / gridSize);
-  }
+function resetScore() {
+  state.score = 0;
+  updateScore();
+}
 
-  function randomLetter() {
-    return letters[Math.floor(Math.random() * letters.length)];
-  }
+function resetGame() {
+  initGrid();
+  resetScore();
+  state.selected = null;
+  state.dragging = false;
+}
 
-  function createTile(row, col) {
-    return {
-      row,
-      col,
-      letter: randomLetter(),
-    };
-  }
+function tileRect(row, col) {
+  const x = state.padding + col * (state.tileSize + state.gap);
+  const y = state.padding + row * (state.tileSize + state.gap);
+  return { x, y, size: state.tileSize };
+}
 
-  function initGrid() {
-    state.grid = [];
-    for (let row = 0; row < gridSize; row += 1) {
-      const rowTiles = [];
-      for (let col = 0; col < gridSize; col += 1) {
-        rowTiles.push(createTile(row, col));
-      }
-      state.grid.push(rowTiles);
-    }
-  }
-
-  function resetScore() {
-    state.score = 0;
-    scoreEl.textContent = "0";
-  }
-
-  function startSession() {
-    state.session.remainingMs = state.session.durationMs;
-    state.session.startTime = performance.now();
-    state.session.active = true;
-    timerEl.textContent = Math.ceil(state.session.remainingMs / 1000).toString();
-  }
-
-  function endSession() {
-    state.session.active = false;
-    timerEl.textContent = "0";
-  }
-
-  function resetGame() {
-    initGrid();
-    resetScore();
-    startSession();
-  }
-
-  function tileRect(row, col) {
-    const x = state.padding + col * (state.tileSize + state.gap);
-    const y = state.padding + row * (state.tileSize + state.gap);
-    return { x, y, size: state.tileSize };
-  }
-
-  function getTileAt(x, y) {
-    for (let row = 0; row < gridSize; row += 1) {
-      for (let col = 0; col < gridSize; col += 1) {
-        const tile = state.grid[row][col];
-        if (!tile) continue;
-        const rect = tileRect(tile.row, tile.col);
-        if (x >= rect.x && x <= rect.x + rect.size && y >= rect.y && y <= rect.y + rect.size) {
-          return tile;
-        }
+function getTileAt(x, y) {
+  for (let row = 0; row < state.gridRows; row += 1) {
+    for (let col = 0; col < state.gridCols; col += 1) {
+      const tile = state.grid[row][col];
+      if (!tile) continue;
+      const rect = tileRect(tile.row, tile.col);
+      if (x >= rect.x && x <= rect.x + rect.size && y >= rect.y && y <= rect.y + rect.size) {
+        return tile;
       }
     }
-    return null;
+  }
+  return null;
+}
+
+function drawTile(tile) {
+  const rect = tileRect(tile.row, tile.col);
+  let dx = rect.x;
+  let dy = rect.y;
+
+  if (state.animation && state.animation.tiles.includes(tile)) {
+    const anim = state.animation;
+    const tIndex = anim.tiles.indexOf(tile);
+    const from = anim.from[tIndex];
+    const to = anim.to[tIndex];
+    const progress = anim.progress;
+    dx = from.x + (to.x - from.x) * progress;
+    dy = from.y + (to.y - from.y) * progress;
   }
 
-  function drawTile(tile) {
-    const rect = tileRect(tile.row, tile.col);
-    let dx = rect.x;
-    let dy = rect.y;
+  ctx.fillStyle = "#fff";
+  ctx.strokeStyle = "#2b2b2b";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(dx, dy, rect.size, rect.size, 10);
+  ctx.fill();
+  ctx.stroke();
 
-    if (state.animation && state.animation.tiles.includes(tile)) {
-      const anim = state.animation;
-      const tIndex = anim.tiles.indexOf(tile);
-      const from = anim.from[tIndex];
-      const to = anim.to[tIndex];
-      const progress = anim.progress;
-      dx = from.x + (to.x - from.x) * progress;
-      dy = from.y + (to.y - from.y) * progress;
+  if (state.selected === tile) {
+    ctx.strokeStyle = "#e36b2c";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(dx + 2, dy + 2, rect.size - 4, rect.size - 4);
+  }
+
+  ctx.fillStyle = "#1f1f1f";
+  ctx.font = `${Math.floor(rect.size * 0.5)}px Georgia`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(tile.letter, dx + rect.size / 2, dy + rect.size / 2);
+}
+
+function render(timestamp) {
+  updateAnimation(timestamp);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#fdfbf8";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (let row = 0; row < state.gridRows; row += 1) {
+    for (let col = 0; col < state.gridCols; col += 1) {
+      const tile = state.grid[row][col];
+      if (tile) drawTile(tile);
     }
-
-    ctx.fillStyle = "#fff";
-    ctx.strokeStyle = "#2b2b2b";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(dx, dy, rect.size, rect.size, 10);
-    ctx.fill();
-    ctx.stroke();
-
-    if (state.selected === tile) {
-      ctx.strokeStyle = "#e36b2c";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(dx + 2, dy + 2, rect.size - 4, rect.size - 4);
-    }
-
-    ctx.fillStyle = "#1f1f1f";
-    ctx.font = `${Math.floor(rect.size * 0.5)}px Georgia`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(tile.letter, dx + rect.size / 2, dy + rect.size / 2);
   }
 
-  function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#fdfbf8";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  requestAnimationFrame(render);
+}
 
-    for (let row = 0; row < gridSize; row += 1) {
-      for (let col = 0; col < gridSize; col += 1) {
-        const tile = state.grid[row][col];
-        if (tile) drawTile(tile);
-      }
-    }
+function swapTiles(a, b) {
+  const tempRow = a.row;
+  const tempCol = a.col;
+  a.row = b.row;
+  a.col = b.col;
+  b.row = tempRow;
+  b.col = tempCol;
+  state.grid[a.row][a.col] = a;
+  state.grid[b.row][b.col] = b;
+}
 
-    requestAnimationFrame(render);
-  }
-
-  function isAdjacent(a, b) {
-    const dr = Math.abs(a.row - b.row);
-    const dc = Math.abs(a.col - b.col);
-    return dr + dc === 1;
-  }
-
-  function swapTiles(a, b) {
-    const tempRow = a.row;
-    const tempCol = a.col;
-    a.row = b.row;
-    a.col = b.col;
-    b.row = tempRow;
-    b.col = tempCol;
-    state.grid[a.row][a.col] = a;
-    state.grid[b.row][b.col] = b;
-  }
-
-  function animateSwap(a, b, onComplete) {
-    state.inputLocked = true;
-    const rectA = tileRect(a.row, a.col);
-    const rectB = tileRect(b.row, b.col);
+function animateSwap(a, b) {
+  const rectA = tileRect(a.row, a.col);
+  const rectB = tileRect(b.row, b.col);
+  return new Promise((resolve) => {
     state.animation = {
       tiles: [a, b],
       from: [rectA, rectB],
       to: [rectB, rectA],
       progress: 0,
       start: performance.now(),
-      duration: 160,
-      onComplete,
+      duration: state.config.animations.swapMs,
+      onComplete: resolve,
     };
+  });
+}
+
+function updateAnimation(timestamp) {
+  if (!state.animation) return;
+  const anim = state.animation;
+  const elapsed = timestamp - anim.start;
+  anim.progress = Math.min(elapsed / anim.duration, 1);
+
+  if (anim.progress >= 1) {
+    const callback = anim.onComplete;
+    state.animation = null;
+    if (callback) callback();
+  }
+}
+
+function scoreMatches(matchSet) {
+  let points = 0;
+  for (const key of matchSet) {
+    const [row, col] = key.split(",").map(Number);
+    const tile = state.grid[row][col];
+    if (tile) points += letterValues[tile.letter] || 0;
+  }
+  return points;
+}
+
+async function resolveMatchesAnimated() {
+  let matched = findMatches(state.grid, state.gridRows, state.gridCols);
+  let didMatch = false;
+
+  while (matched.size > 0) {
+    didMatch = true;
+    const points = scoreMatches(matched);
+    state.score += points;
+    updateScore();
+    clearMatches(state.grid, matched);
+    await delay(state.config.animations.matchResolveMs);
+    collapseColumns(state.grid, state.gridRows, state.gridCols, state.mask, createTile);
+    await delay(state.config.animations.cascadeMs);
+    matched = findMatches(state.grid, state.gridRows, state.gridCols);
   }
 
-  function updateAnimation(timestamp) {
-    if (!state.animation) return;
-    const anim = state.animation;
-    const elapsed = timestamp - anim.start;
-    anim.progress = Math.min(elapsed / anim.duration, 1);
+  return didMatch;
+}
 
-    if (anim.progress >= 1) {
-      const callback = anim.onComplete;
-      state.animation = null;
-      state.inputLocked = false;
-      if (callback) callback();
-    }
-  }
+function isAdjacent(a, b) {
+  const dr = Math.abs(a.row - b.row);
+  const dc = Math.abs(a.col - b.col);
+  return dr + dc === 1;
+}
 
-  function findMatches() {
-    const matches = new Set();
+async function handleSwap(targetTile) {
+  const selected = state.selected;
+  if (!selected || !targetTile || selected === targetTile) return;
+  if (!isAdjacent(selected, targetTile)) return;
 
-    for (let row = 0; row < gridSize; row += 1) {
-      let runStart = 0;
-      for (let col = 1; col <= gridSize; col += 1) {
-        const current = col < gridSize ? state.grid[row][col] : null;
-        const prev = state.grid[row][col - 1];
-        const isSame = current && prev && current.letter === prev.letter;
-        if (!isSame) {
-          const runLength = col - runStart;
-          if (runLength >= 3) {
-            for (let c = runStart; c < col; c += 1) {
-              matches.add(`${row},${c}`);
-            }
-          }
-          runStart = col;
-        }
-      }
-    }
+  const first = selected;
+  const second = targetTile;
+  state.selected = null;
+  state.inputLocked = true;
 
-    for (let col = 0; col < gridSize; col += 1) {
-      let runStart = 0;
-      for (let row = 1; row <= gridSize; row += 1) {
-        const current = row < gridSize ? state.grid[row][col] : null;
-        const prev = state.grid[row - 1][col];
-        const isSame = current && prev && current.letter === prev.letter;
-        if (!isSame) {
-          const runLength = row - runStart;
-          if (runLength >= 3) {
-            for (let r = runStart; r < row; r += 1) {
-              matches.add(`${r},${col}`);
-            }
-          }
-          runStart = row;
-        }
-      }
-    }
-
-    return matches;
-  }
-
-  function scoreMatches(matchSet) {
-    let points = 0;
-    for (const key of matchSet) {
-      const [row, col] = key.split(",").map(Number);
-      const tile = state.grid[row][col];
-      if (tile) points += letterValues[tile.letter] || 0;
-    }
-    return points;
-  }
-
-  function clearMatches(matchSet) {
-    for (const key of matchSet) {
-      const [row, col] = key.split(",").map(Number);
-      state.grid[row][col] = null;
-    }
-  }
-
-  function collapseColumns() {
-    for (let col = 0; col < gridSize; col += 1) {
-      const columnTiles = [];
-      for (let row = gridSize - 1; row >= 0; row -= 1) {
-        const tile = state.grid[row][col];
-        if (tile) columnTiles.push(tile);
-      }
-
-      for (let row = gridSize - 1; row >= 0; row -= 1) {
-        const tile = columnTiles.shift() || createTile(row, col);
-        tile.row = row;
-        tile.col = col;
-        state.grid[row][col] = tile;
-      }
-    }
-  }
-
-  function resolveMatches() {
-    let matched = findMatches();
-    let didMatch = false;
-
-    while (matched.size > 0) {
-      didMatch = true;
-      const points = scoreMatches(matched);
-      state.score += points;
-      scoreEl.textContent = state.score.toString();
-      clearMatches(matched);
-      collapseColumns();
-      matched = findMatches();
-    }
-
-    return didMatch;
-  }
-
-  function handleSwap(targetTile) {
-    const selected = state.selected;
-    if (!selected || !targetTile || selected === targetTile) return;
-    if (!isAdjacent(selected, targetTile)) return;
-
-    const first = selected;
-    const second = targetTile;
-    state.selected = null;
-
-    animateSwap(first, second, () => {
+  try {
+    await animateSwap(first, second);
+    swapTiles(first, second);
+    const matched = await resolveMatchesAnimated();
+    if (!matched) {
+      await animateSwap(first, second);
       swapTiles(first, second);
-      const matched = resolveMatches();
-      if (!matched) {
-        animateSwap(first, second, () => {
-          swapTiles(first, second);
-        });
-      }
-    });
+    }
+  } finally {
+    state.inputLocked = false;
   }
+}
 
-  function pointerToCanvas(event) {
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    return { x, y };
-  }
+function pointerToCanvas(event) {
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  return { x, y };
+}
 
-  function onPointerDown(event) {
-    if (state.inputLocked || !state.session.active) return;
-    const { x, y } = pointerToCanvas(event);
-    const tile = getTileAt(x, y);
-    if (!tile) return;
-    state.selected = tile;
-    state.dragging = true;
-  }
+function onPointerDown(event) {
+  if (state.inputLocked) return;
+  const { x, y } = pointerToCanvas(event);
+  const tile = getTileAt(x, y);
+  if (!tile) return;
+  state.selected = tile;
+  state.dragging = true;
+}
 
-  function onPointerUp(event) {
-    if (state.inputLocked || !state.session.active) return;
-    if (!state.dragging) return;
-    const { x, y } = pointerToCanvas(event);
-    const tile = getTileAt(x, y);
+function onPointerUp(event) {
+  if (state.inputLocked) return;
+  if (!state.dragging) return;
+  const { x, y } = pointerToCanvas(event);
+  const tile = getTileAt(x, y);
+  handleSwap(tile);
+  state.dragging = false;
+}
+
+function onPointerMove(event) {
+  if (!state.dragging || state.inputLocked) return;
+  const { x, y } = pointerToCanvas(event);
+  const tile = getTileAt(x, y);
+  if (tile && tile !== state.selected) {
     handleSwap(tile);
     state.dragging = false;
   }
+}
 
-  function onPointerMove(event) {
-    if (!state.dragging || state.inputLocked || !state.session.active) return;
-    const { x, y } = pointerToCanvas(event);
-    const tile = getTileAt(x, y);
-    if (tile && tile !== state.selected) {
-      handleSwap(tile);
-      state.dragging = false;
-    }
+function normalizeBoardDefinition(board) {
+  if (!board || !board.grid) {
+    return {
+      id: "default",
+      name: "Default Board",
+      theme: "default",
+      level: 1,
+      grid: { ...state.config.grid },
+      mask: createMask(state.config.grid.rows, state.config.grid.cols, 1),
+    };
   }
 
-  function updateTimer(timestamp) {
-    if (!state.session.active || !state.session.startTime) return;
-    const elapsed = timestamp - state.session.startTime;
-    const remaining = Math.max(state.session.durationMs - elapsed, 0);
-    state.session.remainingMs = remaining;
-    timerEl.textContent = Math.ceil(remaining / 1000).toString();
-    if (remaining <= 0) endSession();
+  const rows = Number(board.grid.rows) || state.config.grid.rows;
+  const cols = Number(board.grid.cols) || state.config.grid.cols;
+  const mask = normalizeMask(board.mask, rows, cols);
+
+  return {
+    id: board.id || "default",
+    name: board.name || "Default Board",
+    theme: board.theme || "default",
+    level: board.level || 1,
+    grid: { rows, cols },
+    mask,
+  };
+}
+
+async function fetchJson(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to load ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.warn("Board config load failed", error);
+    return null;
+  }
+}
+
+async function loadConfig() {
+  const configUrl = new URL("../assets/config/gameplay.json", window.location.href);
+  const config = await fetchJson(configUrl);
+  if (!config) return defaultConfig;
+  return {
+    ...defaultConfig,
+    ...config,
+    grid: { ...defaultConfig.grid, ...(config.grid || {}) },
+    board: { ...defaultConfig.board, ...(config.board || {}) },
+    animations: { ...defaultConfig.animations, ...(config.animations || {}) },
+  };
+}
+
+async function loadBoardDefinition() {
+  const indexUrl = new URL("../assets/boards/index.json", window.location.href);
+  const index = await fetchJson(indexUrl);
+  if (!index || !Array.isArray(index.themes) || index.themes.length === 0) {
+    return normalizeBoardDefinition(null);
   }
 
-  function tick(timestamp) {
-    updateAnimation(timestamp);
-    updateTimer(timestamp);
-    requestAnimationFrame(tick);
+  const theme = index.themes[0];
+  if (!theme || !Array.isArray(theme.boards) || theme.boards.length === 0) {
+    return normalizeBoardDefinition(null);
   }
 
-  window.addEventListener("resize", () => {
-    resizeCanvas();
-  });
+  const firstBoard = theme.boards[0];
+  const boardPath = typeof firstBoard === "string" ? firstBoard : firstBoard.path;
+  if (!boardPath) {
+    return normalizeBoardDefinition(null);
+  }
 
-  canvas.addEventListener("pointerdown", onPointerDown);
-  canvas.addEventListener("pointermove", onPointerMove);
-  window.addEventListener("pointerup", onPointerUp);
-  resetButton.addEventListener("click", resetGame);
+  const boardUrl = new URL(boardPath, indexUrl);
+  const board = await fetchJson(boardUrl);
+  return normalizeBoardDefinition(board);
+}
+
+async function init() {
+  state.config = await loadConfig();
+  document.documentElement.style.setProperty(
+    "--board-max-width",
+    `${state.config.board.maxWidth}px`
+  );
+  const boardDefinition = await loadBoardDefinition();
+
+  state.gridRows = boardDefinition.grid.rows;
+  state.gridCols = boardDefinition.grid.cols;
+  state.mask = boardDefinition.mask;
+  state.gap = state.config.board.gap;
+  state.padding = state.config.board.padding;
+  state.boardDefinition = boardDefinition;
 
   resizeCanvas();
   resetGame();
   requestAnimationFrame(render);
-  requestAnimationFrame(tick);
-})();
+}
+
+window.addEventListener("resize", () => {
+  resizeCanvas();
+});
+
+canvas.addEventListener("pointerdown", onPointerDown);
+canvas.addEventListener("pointermove", onPointerMove);
+window.addEventListener("pointerup", onPointerUp);
+resetButton.addEventListener("click", resetGame);
+
+init();

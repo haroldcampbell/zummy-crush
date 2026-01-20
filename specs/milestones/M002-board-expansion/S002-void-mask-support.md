@@ -45,7 +45,7 @@ Support boards with voids (gaps) where no tiles exist.
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
+- [x] Spec reviewed
+- [x] Implementation complete
 - [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Docs updated

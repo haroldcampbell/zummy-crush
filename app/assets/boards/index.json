@@ -1,0 +1,13 @@
+{
+  "themes": [
+    {
+      "id": "easy",
+      "name": "Easy",
+      "boards": [
+        { "id": "easy-1", "path": "easy/board-1.json" },
+        { "id": "easy-2", "path": "easy/board-2.json" },
+        { "id": "easy-3", "path": "easy/board-3.json" }
+      ]
+    }
+  ]
+}

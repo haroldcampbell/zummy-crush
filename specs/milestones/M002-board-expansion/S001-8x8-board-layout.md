@@ -60,9 +60,9 @@ Scale the board from 3x3 to 8x8 while keeping the board responsive and readable 
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Timer removed
-- [ ] Animation speed reduced
-- [ ] Implementation complete
+- [x] Spec reviewed
+- [x] Timer removed
+- [x] Animation speed reduced
+- [x] Implementation complete
 - [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Docs updated
