@@ -49,6 +49,7 @@ const defaultConfig = {
     tapRepulsionBoost: 0.35,
     tapScaleDown: 0.08,
     tapScaleDurationMs: 140,
+    cascadeSpacingGapMultiplier: 2,
   },
 };
 
@@ -387,7 +388,7 @@ function computeFallDuration(fromRect, toRect) {
 function computeSpacingTime() {
   const gravity = state.config.physics.gravityPxPerMs;
   if (gravity <= 0) return state.config.animations.cascadeStaggerMs;
-  const spacingPx = state.gap * 2;
+  const spacingPx = state.gap * state.config.physics.cascadeSpacingGapMultiplier;
   return spacingPx / gravity;
 }
 

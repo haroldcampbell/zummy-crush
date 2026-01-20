@@ -12,18 +12,19 @@
     "swapMs": 250,
     "cascadeMs": 80,
     "matchResolveMs": 150,
-    "cascadeStaggerMs": 80
+    "cascadeStaggerMs": 0
   },
   "physics": {
     "enabled": true,
-    "gravityPxPerMs": 1.2,
+    "gravityPxPerMs": 0.3,
     "collisionDecel": 0.9,
-    "bounceElasticity": 0.2,
-    "repulsionRadius": 10,
-    "repulsionStrength": 6,
+    "bounceElasticity": 2.5,
+    "repulsionRadius": 0,
+    "repulsionStrength": 1,
     "repulsionDecayMs": 400,
     "tapRepulsionBoost": 0.35,
     "tapScaleDown": 0.08,
-    "tapScaleDurationMs": 140
+    "tapScaleDurationMs": 140,
+    "cascadeSpacingGapMultiplier": 2
   }
 }
