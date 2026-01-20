@@ -11,8 +11,9 @@
   "animations": {
     "swapMs": 250,
     "cascadeMs": 80,
-    "matchResolveMs": 150,
-    "cascadeStaggerMs": 0
+    "matchResolveMs": 40,
+    "minCascadeStaggerMs": 5,
+    "maxCascadeStaggerMs": 10
   },
   "physics": {
     "enabled": true,

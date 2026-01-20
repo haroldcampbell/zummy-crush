@@ -36,7 +36,8 @@ const defaultConfig = {
     swapMs: 500,
     cascadeMs: 500,
     matchResolveMs: 800,
-    cascadeStaggerMs: 10,
+    minCascadeStaggerMs: 5,
+    maxCascadeStaggerMs: 10,
   },
   physics: {
     enabled: true,
@@ -387,9 +388,22 @@ function computeFallDuration(fromRect, toRect) {
 
 function computeSpacingTime() {
   const gravity = state.config.physics.gravityPxPerMs;
-  if (gravity <= 0) return state.config.animations.cascadeStaggerMs;
+  if (gravity <= 0) return getCascadeStaggerMs();
   const spacingPx = state.gap * state.config.physics.cascadeSpacingGapMultiplier;
   return spacingPx / gravity;
+}
+
+function getCascadeStaggerMs() {
+  const min = Math.min(
+    state.config.animations.minCascadeStaggerMs,
+    state.config.animations.maxCascadeStaggerMs
+  );
+  const max = Math.max(
+    state.config.animations.minCascadeStaggerMs,
+    state.config.animations.maxCascadeStaggerMs
+  );
+  if (max <= min) return min;
+  return min + Math.random() * (max - min);
 }
 
 async function resolveMatchesAnimated() {
@@ -432,9 +446,10 @@ async function resolveMatchesAnimated() {
       durations.push(duration);
       const currentTime = perColumnTime.get(move.to.col) || 0;
       delays.push(currentTime);
+      const staggerMs = getCascadeStaggerMs();
       perColumnTime.set(
         move.to.col,
-        currentTime + Math.max(spacingTimeMs, state.config.animations.cascadeStaggerMs)
+        currentTime + Math.max(spacingTimeMs, staggerMs)
       );
     }
     await animateCascadeWithDurations(movingTiles, fromRects, toRects, delays, durations);
@@ -464,9 +479,10 @@ async function resolveMatchesAnimated() {
       newDurations.push(duration);
       const currentTime = newPerColumnTime.get(slot.col) || 0;
       newDelays.push(currentTime);
+      const staggerMs = getCascadeStaggerMs();
       newPerColumnTime.set(
         slot.col,
-        currentTime + Math.max(newSpacingTimeMs, state.config.animations.cascadeStaggerMs)
+        currentTime + Math.max(newSpacingTimeMs, staggerMs)
       );
       state.grid[slot.row][slot.col] = tile;
     }
