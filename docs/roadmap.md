@@ -17,6 +17,9 @@ This roadmap is a milestone-based checklist. Each milestone links to its specs.
 - [ ] M004 - Loot + Micro-Rewards v1
   - Specs: `specs/milestones/M004-loot-rewards-v1/`
 
+- [ ] M005 - Polish Pass
+  - Note: Review tile sizes for readability and feel
+
 ## Notes
 
 - Milestones beyond M004 will be added after validation of core fun/loop.
