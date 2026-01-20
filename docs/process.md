@@ -19,6 +19,7 @@ This process governs how we move from ideas to specs to implementation. It prior
     - Decide whether the agent works on a single spec or multiple specs.
 6. DoD checks
     - Spec and milestone DoDs are verified and checked off.
+    - Acceptance Checklists must be fully checked before marking a spec or milestone complete.
 7. Commit + PR
     - Each spec results in a git commit and a PR (or one PR per milestone if needed).
     - Commit regularly with small, focused changes to reduce risk.

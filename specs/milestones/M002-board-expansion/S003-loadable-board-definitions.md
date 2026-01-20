@@ -48,5 +48,5 @@ Load board layouts from a static JSON file to allow multiple boards without code
 
 - [x] Spec reviewed
 - [x] Implementation complete
-- [ ] Tests added/updated
+- [x] Tests added/updated
 - [x] Docs updated

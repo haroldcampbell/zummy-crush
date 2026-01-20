@@ -64,5 +64,5 @@ Scale the board from 3x3 to 8x8 while keeping the board responsive and readable 
 - [x] Timer removed
 - [x] Animation speed reduced
 - [x] Implementation complete
-- [ ] Tests added/updated
+- [x] Tests added/updated
 - [x] Docs updated
