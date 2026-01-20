@@ -26,6 +26,9 @@ Scale the board from 3x3 to 8x8 while keeping the board responsive and readable 
 - Remove the timer from the board (UI and underlying timer logic)
 - Animations happen a bit slower so that user can see them
 - Improve game score readability (add 000s comma)
+- Initial board state contains no pre-existing matches
+- Cascades resolve without overlapping tiles (overlap only during swap)
+- New tiles only spawn once there is space available
 - Grid size is configurable with a default of 8x8
 - Animation timings are configurable via a local config JSON
 
@@ -60,9 +63,11 @@ Scale the board from 3x3 to 8x8 while keeping the board responsive and readable 
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Timer removed
-- [ ] Animation speed reduced
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Timer removed
+- [x] Animation speed reduced
+- [x] Initial board has no matches
+- [x] Cascades avoid overlap and only spawn into open space
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

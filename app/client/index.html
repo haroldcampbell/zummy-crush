@@ -3,17 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Zummy Crush - M001 POC</title>
+    <title>Zummy Crush - M002 Board Expansion</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <main class="app">
       <section class="board-panel">
         <header class="hud">
-          <div class="hud-item">
-            <span class="hud-label">Time</span>
-            <span id="timer" class="hud-value">60</span>
-          </div>
           <div class="hud-item">
             <span class="hud-label">Score</span>
             <span id="score" class="hud-value">0</span>
@@ -23,6 +19,6 @@
         <canvas id="board" aria-label="Game board" role="img"></canvas>
       </section>
     </main>
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
   </body>
 </html>
