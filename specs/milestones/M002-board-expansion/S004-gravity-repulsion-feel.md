@@ -85,6 +85,6 @@ Tile cascades feel too block-like and lack physicality. We need a lightweight, v
 - [x] Tap repulsion + scale-down implemented
 - [x] Cascades show deceleration + minimal bounce
 - [x] No overlap during cascades (except swap)
-- [ ] 60fps target verified on mobile baseline
+- [ ] ~60fps target verified on mobile baseline~ (Won't ~do)
 - [x] Tests added/updated
 - [x] Docs updated
