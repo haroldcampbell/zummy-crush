@@ -27,7 +27,7 @@ const defaultConfig = {
     cols: 8,
   },
   board: {
-    gap: 4,
+    gap: 8,
     padding: 8,
     maxWidth: 320,
   },
@@ -35,6 +35,7 @@ const defaultConfig = {
     swapMs: 500,
     cascadeMs: 500,
     matchResolveMs: 800,
+    cascadeStaggerMs: 10,
   },
 };
 
@@ -133,24 +134,18 @@ function drawTile(tile) {
     const tIndex = anim.tiles.indexOf(tile);
     const from = anim.from[tIndex];
     const to = anim.to[tIndex];
-    const progress = anim.progress;
+    const progress = anim.progresses ? anim.progresses[tIndex] : anim.progress;
     dx = from.x + (to.x - from.x) * progress;
     dy = from.y + (to.y - from.y) * progress;
   }
 
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = state.selected === tile ? "#f6b48c" : "#fff";
   ctx.strokeStyle = "#2b2b2b";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.roundRect(dx, dy, rect.size, rect.size, 10);
   ctx.fill();
   ctx.stroke();
-
-  if (state.selected === tile) {
-    ctx.strokeStyle = "#e36b2c";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(dx + 2, dy + 2, rect.size - 4, rect.size - 4);
-  }
 
   ctx.fillStyle = "#1f1f1f";
   ctx.font = `${Math.floor(rect.size * 0.5)}px Georgia`;
@@ -202,16 +197,48 @@ function animateSwap(a, b) {
   });
 }
 
+function animateCascade(tiles, from, to) {
+  if (tiles.length === 0) return Promise.resolve();
+  return new Promise((resolve) => {
+    state.animation = {
+      tiles,
+      from,
+      to,
+      progresses: new Array(tiles.length).fill(0),
+      start: performance.now(),
+      duration: state.config.animations.cascadeMs,
+      staggerMs: state.config.animations.cascadeStaggerMs,
+      onComplete: resolve,
+    };
+  });
+}
+
 function updateAnimation(timestamp) {
   if (!state.animation) return;
   const anim = state.animation;
-  const elapsed = timestamp - anim.start;
-  anim.progress = Math.min(elapsed / anim.duration, 1);
+  if (anim.staggerMs != null) {
+    let completed = 0;
+    for (let i = 0; i < anim.tiles.length; i += 1) {
+      const localElapsed = timestamp - (anim.start + anim.staggerMs * i);
+      const progress = Math.min(Math.max(localElapsed / anim.duration, 0), 1);
+      anim.progresses[i] = progress;
+      if (progress >= 1) completed += 1;
+    }
 
-  if (anim.progress >= 1) {
-    const callback = anim.onComplete;
-    state.animation = null;
-    if (callback) callback();
+    if (completed === anim.tiles.length) {
+      const callback = anim.onComplete;
+      state.animation = null;
+      if (callback) callback();
+    }
+  } else {
+    const elapsed = timestamp - anim.start;
+    anim.progress = Math.min(elapsed / anim.duration, 1);
+
+    if (anim.progress >= 1) {
+      const callback = anim.onComplete;
+      state.animation = null;
+      if (callback) callback();
+    }
   }
 }
 
@@ -236,8 +263,32 @@ async function resolveMatchesAnimated() {
     updateScore();
     clearMatches(state.grid, matched);
     await delay(state.config.animations.matchResolveMs);
+    const previousPositions = new Map();
+    for (let row = 0; row < state.gridRows; row += 1) {
+      for (let col = 0; col < state.gridCols; col += 1) {
+        const tile = state.grid[row][col];
+        if (!tile) continue;
+        previousPositions.set(tile, { row: tile.row, col: tile.col });
+      }
+    }
     collapseColumns(state.grid, state.gridRows, state.gridCols, state.mask, createTile);
-    await delay(state.config.animations.cascadeMs);
+    const movingTiles = [];
+    const fromRects = [];
+    const toRects = [];
+    for (let row = 0; row < state.gridRows; row += 1) {
+      for (let col = 0; col < state.gridCols; col += 1) {
+        const tile = state.grid[row][col];
+        if (!tile) continue;
+        const previous = previousPositions.get(tile);
+        if (!previous) continue;
+        if (previous.row !== tile.row || previous.col !== tile.col) {
+          movingTiles.push(tile);
+          fromRects.push(tileRect(previous.row, previous.col));
+          toRects.push(tileRect(tile.row, tile.col));
+        }
+      }
+    }
+    await animateCascade(movingTiles, fromRects, toRects);
     matched = findMatches(state.grid, state.gridRows, state.gridCols);
   }
 

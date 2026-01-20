@@ -4,13 +4,14 @@
     "cols": 8
   },
   "board": {
-    "gap": 4,
+    "gap": 8,
     "padding": 8,
     "maxWidth": 320
   },
   "animations": {
-    "swapMs": 500,
-    "cascadeMs": 500,
-    "matchResolveMs": 800
+    "swapMs": 250,
+    "cascadeMs": 150,
+    "matchResolveMs": 800,
+    "cascadeStaggerMs": 10
   }
 }
