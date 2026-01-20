@@ -143,3 +143,42 @@ export function collapseColumns(grid, rows, cols, mask, createTile) {
     }
   }
 }
+
+export function collapseExistingTiles(grid, rows, cols, mask) {
+  const nextGrid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => null));
+  const moves = [];
+  const emptySlots = [];
+
+  for (let col = 0; col < cols; col += 1) {
+    const columnTiles = [];
+    for (let row = rows - 1; row >= 0; row -= 1) {
+      if (mask[row][col] !== 1) continue;
+      const tile = grid[row][col];
+      if (tile) columnTiles.push(tile);
+    }
+
+    let targetRow = rows - 1;
+    for (const tile of columnTiles) {
+      while (targetRow >= 0 && mask[targetRow][col] !== 1) {
+        targetRow -= 1;
+      }
+      if (targetRow < 0) break;
+      const from = { row: tile.row, col: tile.col };
+      const to = { row: targetRow, col };
+      if (from.row !== to.row || from.col !== to.col) {
+        moves.push({ tile, from, to });
+      }
+      tile.row = to.row;
+      tile.col = to.col;
+      nextGrid[to.row][to.col] = tile;
+      targetRow -= 1;
+    }
+
+    for (let row = targetRow; row >= 0; row -= 1) {
+      if (mask[row][col] !== 1) continue;
+      emptySlots.push({ row, col });
+    }
+  }
+
+  return { nextGrid, moves, emptySlots };
+}

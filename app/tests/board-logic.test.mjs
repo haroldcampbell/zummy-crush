@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildGrid,
+  collapseExistingTiles,
   collapseColumns,
   createMask,
   fillGridNoMatches,
@@ -87,6 +88,28 @@ function testCollapseRespectsVoids() {
   assert.equal(grid[1][0], null, "void cell remains empty");
 }
 
+function testCollapseExistingTiles() {
+  const rows = 4;
+  const cols = 1;
+  const mask = [
+    [1],
+    [1],
+    [1],
+    [1],
+  ];
+  const grid = [
+    [makeTile(0, 0, "A")],
+    [null],
+    [makeTile(2, 0, "B")],
+    [null],
+  ];
+  const { nextGrid, moves, emptySlots } = collapseExistingTiles(grid, rows, cols, mask);
+  assert.equal(nextGrid[3][0].letter, "B", "bottom tile moves down");
+  assert.equal(nextGrid[2][0].letter, "A", "upper tile moves above bottom");
+  assert.equal(emptySlots.length, 2, "empty slots are tracked after collapse");
+  assert.equal(moves.length, 2, "moves include both falling tiles");
+}
+
 function testBuildGridCreatesNullsForVoids() {
   const rows = 2;
   const cols = 2;
@@ -106,6 +129,7 @@ function runTests() {
   testFindMatchesSkipsVoids();
   testFillGridNoMatches();
   testCollapseRespectsVoids();
+  testCollapseExistingTiles();
   testBuildGridCreatesNullsForVoids();
   console.log("All board logic tests passed.");
 }

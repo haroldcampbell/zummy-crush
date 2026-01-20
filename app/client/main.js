@@ -2,6 +2,7 @@ import {
   buildGrid,
   clearMatches,
   collapseColumns,
+  collapseExistingTiles,
   createMask,
   fillGridNoMatches,
   findMatches,
@@ -272,49 +273,55 @@ async function resolveMatchesAnimated() {
     updateScore();
     clearMatches(state.grid, matched);
     await delay(state.config.animations.matchResolveMs);
-    const previousPositions = new Map();
-    for (let row = 0; row < state.gridRows; row += 1) {
-      for (let col = 0; col < state.gridCols; col += 1) {
-        const tile = state.grid[row][col];
-        if (!tile) continue;
-        previousPositions.set(tile, { row: tile.row, col: tile.col });
-      }
-    }
-    collapseColumns(state.grid, state.gridRows, state.gridCols, state.mask, createTile);
+    const { nextGrid, moves, emptySlots } = collapseExistingTiles(
+      state.grid,
+      state.gridRows,
+      state.gridCols,
+      state.mask
+    );
+    state.grid = nextGrid;
+
     const movingTiles = [];
     const fromRects = [];
     const toRects = [];
     const delays = [];
-    const moves = [];
-    for (let row = 0; row < state.gridRows; row += 1) {
-      for (let col = 0; col < state.gridCols; col += 1) {
-        const tile = state.grid[row][col];
-        if (!tile) continue;
-        const previous = previousPositions.get(tile);
-        if (!previous) continue;
-        if (previous.row !== tile.row || previous.col !== tile.col) {
-          moves.push({
-            tile,
-            from: previous,
-            to: { row: tile.row, col: tile.col },
-          });
-        }
-      }
-    }
     moves.sort((a, b) => {
       if (a.to.col !== b.to.col) return a.to.col - b.to.col;
       return b.from.row - a.from.row;
     });
     const perColumnIndex = new Map();
+    const cascadeStepMs =
+      state.config.animations.cascadeMs + state.config.animations.cascadeStaggerMs;
     for (const move of moves) {
       const currentIndex = perColumnIndex.get(move.to.col) || 0;
       perColumnIndex.set(move.to.col, currentIndex + 1);
       movingTiles.push(move.tile);
       fromRects.push(tileRect(move.from.row, move.from.col));
       toRects.push(tileRect(move.to.row, move.to.col));
-      delays.push(currentIndex * state.config.animations.cascadeStaggerMs);
+      delays.push(currentIndex * cascadeStepMs);
     }
     await animateCascade(movingTiles, fromRects, toRects, delays);
+
+    const newTiles = [];
+    const newFromRects = [];
+    const newToRects = [];
+    const newDelays = [];
+    emptySlots.sort((a, b) => {
+      if (a.col !== b.col) return a.col - b.col;
+      return b.row - a.row;
+    });
+    const newPerColumnIndex = new Map();
+    for (const slot of emptySlots) {
+      const currentIndex = newPerColumnIndex.get(slot.col) || 0;
+      newPerColumnIndex.set(slot.col, currentIndex + 1);
+      const tile = createTile(slot.row, slot.col);
+      newTiles.push(tile);
+      newFromRects.push(tileRect(-1 - currentIndex, slot.col));
+      newToRects.push(tileRect(slot.row, slot.col));
+      newDelays.push(currentIndex * cascadeStepMs);
+      state.grid[slot.row][slot.col] = tile;
+    }
+    await animateCascade(newTiles, newFromRects, newToRects, newDelays);
     matched = findMatches(state.grid, state.gridRows, state.gridCols);
   }
 
