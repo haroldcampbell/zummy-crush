@@ -20,6 +20,12 @@ Enable multiple agents to work independently without duplicating effort or confl
     - Decisions made to unblock work
 - If a spec depends on another, mark it explicitly in the spec.
 
+## Assignment Protocol
+
+- The user (or a designated coordinator) assigns milestones/specs in a shared note or hand-off.
+- Agents claim assignments by creating lock files with the assigned milestone/spec and their branch name.
+- If no assignment exists, agents should stop and ask for assignment before creating locks.
+
 ## Orchestration Process
 
 - Agents create lock files before starting work:
@@ -35,6 +41,7 @@ Enable multiple agents to work independently without duplicating effort or confl
     - create sesion hand-off, commit their code to the branch, and create the PRs
     - remove the .lock files
     - move on to the next available milestone
+- Agents should follow the Multi-Agent Kickoff Checklist before starting implementation work.
 
 ## Lock TTL + Recovery
 
@@ -61,6 +68,20 @@ Before work begins, confirm:
 - Scope and non-scope are explicit
 - Decisions are captured or flagged as open
 - Acceptance checklist is complete
+
+## Multi-Agent Kickoff Checklist
+
+1. Confirm the spec is approved and all open questions are resolved.
+2. Pull latest `main` and create a branch with the naming convention.
+3. Create lock files for the milestone/spec (include agent name, branch, start time, intent).
+4. Re-check `specs/milestones.md` and the milestone spec folder to confirm availability.
+5. Log planned scope and any constraints in the lock file or hand-off draft.
+6. Implement only the assigned spec; avoid cross-spec changes.
+7. Commit regularly (small, focused commits).
+8. Add/update tests for core logic and regressions where applicable.
+9. Write a session hand-off in `hand-offs/` before opening the PR.
+10. Open a PR into `main` and wait for explicit approval to merge.
+11. After merge approval, delete the branch and remove lock files.
 
 ## Stop Conditions
 
