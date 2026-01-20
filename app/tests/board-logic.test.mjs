@@ -3,9 +3,10 @@ import {
   buildGrid,
   collapseColumns,
   createMask,
+  fillGridNoMatches,
   findMatches,
   normalizeMask,
-} from "../app/client/board-logic.mjs";
+} from "../client/board-logic.mjs";
 
 function makeTile(row, col, letter) {
   return { row, col, letter };
@@ -41,6 +42,27 @@ function testFindMatchesSkipsVoids() {
 
   const matches = findMatches(grid, rows, cols);
   assert.equal(matches.size, 3, "findMatches detects horizontal match with void ignored");
+}
+
+function testFillGridNoMatches() {
+  const rows = 6;
+  const cols = 6;
+  const mask = createMask(rows, cols, 1);
+  let counter = 0;
+  const rng = () => {
+    counter = (counter + 1) % 10;
+    return counter / 10;
+  };
+  const grid = fillGridNoMatches(
+    rows,
+    cols,
+    mask,
+    ["A", "B", "C", "D"],
+    (row, col, letter) => makeTile(row, col, letter),
+    rng
+  );
+  const matches = findMatches(grid, rows, cols);
+  assert.equal(matches.size, 0, "initial grid should not contain matches");
 }
 
 function testCollapseRespectsVoids() {
@@ -82,6 +104,7 @@ function testBuildGridCreatesNullsForVoids() {
 function runTests() {
   testNormalizeMask();
   testFindMatchesSkipsVoids();
+  testFillGridNoMatches();
   testCollapseRespectsVoids();
   testBuildGridCreatesNullsForVoids();
   console.log("All board logic tests passed.");

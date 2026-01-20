@@ -26,6 +26,7 @@ Scale the board from 3x3 to 8x8 while keeping the board responsive and readable 
 - Remove the timer from the board (UI and underlying timer logic)
 - Animations happen a bit slower so that user can see them
 - Improve game score readability (add 000s comma)
+- Initial board state contains no pre-existing matches
 - Grid size is configurable with a default of 8x8
 - Animation timings are configurable via a local config JSON
 
@@ -63,6 +64,7 @@ Scale the board from 3x3 to 8x8 while keeping the board responsive and readable 
 - [x] Spec reviewed
 - [x] Timer removed
 - [x] Animation speed reduced
+- [x] Initial board has no matches
 - [x] Implementation complete
 - [x] Tests added/updated
 - [x] Docs updated

@@ -40,6 +40,39 @@ export function buildGrid(rows, cols, mask, createTile) {
   return grid;
 }
 
+export function fillGridNoMatches(rows, cols, mask, letters, createTile, rng = Math.random) {
+  const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => null));
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      if (mask[row][col] !== 1) continue;
+
+      const forbidden = new Set();
+      if (col >= 2) {
+        const left1 = grid[row][col - 1];
+        const left2 = grid[row][col - 2];
+        if (left1 && left2 && left1.letter === left2.letter) {
+          forbidden.add(left1.letter);
+        }
+      }
+      if (row >= 2) {
+        const up1 = grid[row - 1][col];
+        const up2 = grid[row - 2][col];
+        if (up1 && up2 && up1.letter === up2.letter) {
+          forbidden.add(up1.letter);
+        }
+      }
+
+      const options = letters.filter((letter) => !forbidden.has(letter));
+      const pool = options.length > 0 ? options : letters;
+      const letter = pool[Math.floor(rng() * pool.length)];
+      grid[row][col] = createTile(row, col, letter);
+    }
+  }
+
+  return grid;
+}
+
 export function findMatches(grid, rows, cols) {
   const matches = new Set();
 

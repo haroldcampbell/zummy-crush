@@ -3,6 +3,7 @@ import {
   clearMatches,
   collapseColumns,
   createMask,
+  fillGridNoMatches,
   findMatches,
   normalizeMask,
 } from "./board-logic.mjs";
@@ -80,16 +81,22 @@ function randomLetter() {
   return letters[Math.floor(Math.random() * letters.length)];
 }
 
-function createTile(row, col) {
+function createTile(row, col, letter = randomLetter()) {
   return {
     row,
     col,
-    letter: randomLetter(),
+    letter,
   };
 }
 
 function initGrid() {
-  state.grid = buildGrid(state.gridRows, state.gridCols, state.mask, createTile);
+  state.grid = fillGridNoMatches(
+    state.gridRows,
+    state.gridCols,
+    state.mask,
+    letters,
+    createTile
+  );
 }
 
 function resetScore() {
