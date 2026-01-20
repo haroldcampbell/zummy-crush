@@ -12,8 +12,10 @@
     "swapMs": 250,
     "cascadeMs": 80,
     "matchResolveMs": 40,
-    "minCascadeStaggerMs": 5,
-    "maxCascadeStaggerMs": 10
+    "cascadeStaggerMs": {
+      "min": 5,
+      "max": 10
+    }
   },
   "physics": {
     "enabled": true,

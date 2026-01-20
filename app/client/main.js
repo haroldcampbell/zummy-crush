@@ -36,8 +36,10 @@ const defaultConfig = {
     swapMs: 500,
     cascadeMs: 500,
     matchResolveMs: 800,
-    minCascadeStaggerMs: 5,
-    maxCascadeStaggerMs: 10,
+    cascadeStaggerMs: {
+      min: 5,
+      max: 10,
+    },
   },
   physics: {
     enabled: true,
@@ -394,14 +396,9 @@ function computeSpacingTime() {
 }
 
 function getCascadeStaggerMs() {
-  const min = Math.min(
-    state.config.animations.minCascadeStaggerMs,
-    state.config.animations.maxCascadeStaggerMs
-  );
-  const max = Math.max(
-    state.config.animations.minCascadeStaggerMs,
-    state.config.animations.maxCascadeStaggerMs
-  );
+  const staggerConfig = state.config.animations.cascadeStaggerMs || { min: 0, max: 0 };
+  const min = Math.min(staggerConfig.min ?? 0, staggerConfig.max ?? 0);
+  const max = Math.max(staggerConfig.min ?? 0, staggerConfig.max ?? 0);
   if (max <= min) return min;
   return min + Math.random() * (max - min);
 }
