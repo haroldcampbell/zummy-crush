@@ -27,6 +27,7 @@ Expand the core board to 8x8, support voids (gaps), and allow loadable board def
 - [x] S001 - 8x8 Board Layout
 - [x] S002 - Void Mask Support
 - [x] S003 - Loadable Board Definitions
+- [ ] S004 - Gravity + Repulsion Feel Experiment
 
 ## Dependencies
 - M001 POC

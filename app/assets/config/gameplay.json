@@ -13,5 +13,17 @@
     "cascadeMs": 80,
     "matchResolveMs": 150,
     "cascadeStaggerMs": 80
+  },
+  "physics": {
+    "enabled": true,
+    "gravityPxPerMs": 1.2,
+    "collisionDecel": 0.9,
+    "bounceElasticity": 0.2,
+    "repulsionRadius": 10,
+    "repulsionStrength": 6,
+    "repulsionDecayMs": 400,
+    "tapRepulsionBoost": 0.35,
+    "tapScaleDown": 0.08,
+    "tapScaleDurationMs": 140
   }
 }

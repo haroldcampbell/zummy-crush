@@ -1,13 +1,12 @@
 import {
-  buildGrid,
   clearMatches,
-  collapseColumns,
   collapseExistingTiles,
   createMask,
   fillGridNoMatches,
   findMatches,
   normalizeMask,
 } from "./board-logic.mjs";
+import { computeRepulsionOffsets, computeTapScale, decayBoost } from "./physics-utils.mjs";
 
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
@@ -39,6 +38,18 @@ const defaultConfig = {
     matchResolveMs: 800,
     cascadeStaggerMs: 10,
   },
+  physics: {
+    enabled: true,
+    gravityPxPerMs: 1.2,
+    collisionDecel: 0.9,
+    bounceElasticity: 0.2,
+    repulsionRadius: 10,
+    repulsionStrength: 6,
+    repulsionDecayMs: 400,
+    tapRepulsionBoost: 0.35,
+    tapScaleDown: 0.08,
+    tapScaleDurationMs: 140,
+  },
 };
 
 const scoreFormatter = new Intl.NumberFormat("en-US");
@@ -58,6 +69,8 @@ const state = {
   score: 0,
   config: defaultConfig,
   boardDefinition: null,
+  now: 0,
+  lastFrameTime: 0,
 };
 
 function delay(ms) {
@@ -87,6 +100,8 @@ function createTile(row, col, letter = randomLetter()) {
     row,
     col,
     letter,
+    repulseBoost: 0,
+    tapImpactStart: 0,
   };
 }
 
@@ -132,7 +147,7 @@ function getTileAt(x, y) {
   return null;
 }
 
-function drawTile(tile) {
+function getAnimatedPosition(tile) {
   const rect = tileRect(tile.row, tile.col);
   let dx = rect.x;
   let dy = rect.y;
@@ -147,31 +162,81 @@ function drawTile(tile) {
     dy = from.y + (to.y - from.y) * progress;
   }
 
+  return { x: dx, y: dy, size: rect.size };
+}
+
+function drawTile(tile, offset, scale) {
+  const rect = tileRect(tile.row, tile.col);
+  const animPos = getAnimatedPosition(tile);
+  let dx = animPos.x + offset.x;
+  let dy = animPos.y + offset.y;
+  const tileSize = rect.size;
+  const scaledSize = tileSize * scale;
+  dx -= (scaledSize - tileSize) / 2;
+  dy -= (scaledSize - tileSize) / 2;
+
   ctx.fillStyle = state.selected === tile ? "#f6b48c" : "#fff";
   ctx.strokeStyle = "#2b2b2b";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.roundRect(dx, dy, rect.size, rect.size, 10);
+  ctx.roundRect(dx, dy, scaledSize, scaledSize, 10);
   ctx.fill();
   ctx.stroke();
 
   ctx.fillStyle = "#1f1f1f";
-  ctx.font = `${Math.floor(rect.size * 0.5)}px Georgia`;
+  ctx.font = `${Math.floor(scaledSize * 0.5)}px Georgia`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(tile.letter, dx + rect.size / 2, dy + rect.size / 2);
+  ctx.fillText(tile.letter, dx + scaledSize / 2, dy + scaledSize / 2);
 }
 
 function render(timestamp) {
   updateAnimation(timestamp);
+  const dt = state.lastFrameTime ? timestamp - state.lastFrameTime : 0;
+  state.lastFrameTime = timestamp;
+  state.now = timestamp;
+  if (dt > 0) updateTileEffects(dt);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#fdfbf8";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  const tiles = [];
+  const positions = new Map();
+  const boosts = new Map();
   for (let row = 0; row < state.gridRows; row += 1) {
     for (let col = 0; col < state.gridCols; col += 1) {
       const tile = state.grid[row][col];
-      if (tile) drawTile(tile);
+      if (!tile) continue;
+      tiles.push(tile);
+      const animPos = getAnimatedPosition(tile);
+      positions.set(tile, {
+        x: animPos.x + animPos.size / 2,
+        y: animPos.y + animPos.size / 2,
+      });
+      boosts.set(tile, tile.repulseBoost || 0);
+    }
+  }
+  const offsets = computeRepulsionOffsets(
+    tiles,
+    positions,
+    state.tileSize,
+    state.config.physics,
+    boosts
+  );
+
+  for (let row = 0; row < state.gridRows; row += 1) {
+    for (let col = 0; col < state.gridCols; col += 1) {
+      const tile = state.grid[row][col];
+      if (tile) {
+        const offset = offsets.get(tile) || { x: 0, y: 0 };
+        const scale = computeTapScale(
+          state.now,
+          tile.tapImpactStart,
+          state.config.physics.tapScaleDurationMs,
+          state.config.physics.tapScaleDown
+        );
+        drawTile(tile, offset, scale);
+      }
     }
   }
 
@@ -214,6 +279,25 @@ function animateCascade(tiles, from, to, delays) {
       to,
       progresses: new Array(tiles.length).fill(0),
       delays: delays || null,
+      durations: null,
+      start: performance.now(),
+      duration: state.config.animations.cascadeMs,
+      staggerMs: state.config.animations.cascadeStaggerMs,
+      onComplete: resolve,
+    };
+  });
+}
+
+function animateCascadeWithDurations(tiles, from, to, delays, durations) {
+  if (tiles.length === 0) return Promise.resolve();
+  return new Promise((resolve) => {
+    state.animation = {
+      tiles,
+      from,
+      to,
+      progresses: new Array(tiles.length).fill(0),
+      delays: delays || null,
+      durations: durations || null,
       start: performance.now(),
       duration: state.config.animations.cascadeMs,
       staggerMs: state.config.animations.cascadeStaggerMs,
@@ -230,9 +314,15 @@ function updateAnimation(timestamp) {
     for (let i = 0; i < anim.tiles.length; i += 1) {
       const delay = anim.delays ? anim.delays[i] : anim.staggerMs * i;
       const localElapsed = timestamp - (anim.start + delay);
-      const progress = Math.min(Math.max(localElapsed / anim.duration, 0), 1);
-      anim.progresses[i] = progress;
-      if (progress >= 1) completed += 1;
+      const duration = anim.durations ? anim.durations[i] : anim.duration;
+      const linear = Math.min(Math.max(localElapsed / duration, 0), 1);
+      const eased = easeCascade(
+        linear,
+        state.config.physics.bounceElasticity,
+        state.config.physics.collisionDecel
+      );
+      anim.progresses[i] = eased;
+      if (linear >= 1) completed += 1;
     }
 
     if (completed === anim.tiles.length) {
@@ -262,6 +352,38 @@ function scoreMatches(matchSet) {
   return points;
 }
 
+function easeCascade(t, elasticity, decel) {
+  const clamped = Math.min(Math.max(t, 0), 1);
+  const decelFactor = Math.min(Math.max(decel, 0), 1);
+  const exponent = 2 + decelFactor * 2;
+  const base = 1 - Math.pow(1 - clamped, exponent);
+  if (elasticity <= 0) return base;
+  const wobble =
+    Math.sin(clamped * Math.PI * 2) * (1 - clamped) * Math.min(elasticity, 1) * 0.12;
+  return Math.min(Math.max(base - wobble, 0), 1);
+}
+
+function updateTileEffects(dt) {
+  for (let row = 0; row < state.gridRows; row += 1) {
+    for (let col = 0; col < state.gridCols; col += 1) {
+      const tile = state.grid[row][col];
+      if (!tile) continue;
+      tile.repulseBoost = decayBoost(
+        tile.repulseBoost || 0,
+        dt,
+        state.config.physics.repulsionDecayMs
+      );
+    }
+  }
+}
+
+function computeFallDuration(fromRect, toRect) {
+  const distance = Math.abs(toRect.y - fromRect.y);
+  const gravity = state.config.physics.gravityPxPerMs;
+  if (gravity <= 0) return state.config.animations.cascadeMs;
+  return Math.max(state.config.animations.cascadeMs, distance / gravity);
+}
+
 async function resolveMatchesAnimated() {
   let matched = findMatches(state.grid, state.gridRows, state.gridCols);
   let didMatch = false;
@@ -285,43 +407,66 @@ async function resolveMatchesAnimated() {
     const fromRects = [];
     const toRects = [];
     const delays = [];
+    const durations = [];
     moves.sort((a, b) => {
       if (a.to.col !== b.to.col) return a.to.col - b.to.col;
       return b.from.row - a.from.row;
     });
-    const perColumnIndex = new Map();
-    const cascadeStepMs =
-      state.config.animations.cascadeMs + state.config.animations.cascadeStaggerMs;
+    const perColumnTime = new Map();
     for (const move of moves) {
-      const currentIndex = perColumnIndex.get(move.to.col) || 0;
-      perColumnIndex.set(move.to.col, currentIndex + 1);
       movingTiles.push(move.tile);
       fromRects.push(tileRect(move.from.row, move.from.col));
       toRects.push(tileRect(move.to.row, move.to.col));
-      delays.push(currentIndex * cascadeStepMs);
+      const fromRect = fromRects[fromRects.length - 1];
+      const toRect = toRects[toRects.length - 1];
+      const duration = computeFallDuration(fromRect, toRect);
+      durations.push(duration);
+      const currentTime = perColumnTime.get(move.to.col) || 0;
+      delays.push(currentTime);
+      perColumnTime.set(
+        move.to.col,
+        currentTime + duration + state.config.animations.cascadeStaggerMs
+      );
     }
-    await animateCascade(movingTiles, fromRects, toRects, delays);
+    await animateCascadeWithDurations(movingTiles, fromRects, toRects, delays, durations);
 
     const newTiles = [];
     const newFromRects = [];
     const newToRects = [];
     const newDelays = [];
+    const newDurations = [];
     emptySlots.sort((a, b) => {
       if (a.col !== b.col) return a.col - b.col;
       return b.row - a.row;
     });
-    const newPerColumnIndex = new Map();
+    const newPerColumnTime = new Map();
+    const newPerColumnCount = new Map();
     for (const slot of emptySlots) {
-      const currentIndex = newPerColumnIndex.get(slot.col) || 0;
-      newPerColumnIndex.set(slot.col, currentIndex + 1);
       const tile = createTile(slot.row, slot.col);
       newTiles.push(tile);
-      newFromRects.push(tileRect(-1 - currentIndex, slot.col));
+      const count = newPerColumnCount.get(slot.col) || 0;
+      newPerColumnCount.set(slot.col, count + 1);
+      newFromRects.push(tileRect(-1 - count, slot.col));
       newToRects.push(tileRect(slot.row, slot.col));
-      newDelays.push(currentIndex * cascadeStepMs);
+      const fromRect = newFromRects[newFromRects.length - 1];
+      const toRect = newToRects[newToRects.length - 1];
+      const duration = computeFallDuration(fromRect, toRect);
+      newDurations.push(duration);
+      const currentTime = newPerColumnTime.get(slot.col) || 0;
+      newDelays.push(currentTime);
+      newPerColumnTime.set(
+        slot.col,
+        currentTime + duration + state.config.animations.cascadeStaggerMs
+      );
       state.grid[slot.row][slot.col] = tile;
     }
-    await animateCascade(newTiles, newFromRects, newToRects, newDelays);
+    await animateCascadeWithDurations(
+      newTiles,
+      newFromRects,
+      newToRects,
+      newDelays,
+      newDurations
+    );
     matched = findMatches(state.grid, state.gridRows, state.gridCols);
   }
 
@@ -370,6 +515,11 @@ function onPointerDown(event) {
   const tile = getTileAt(x, y);
   if (!tile) return;
   state.selected = tile;
+  tile.repulseBoost = Math.min(
+    (tile.repulseBoost || 0) + state.config.physics.tapRepulsionBoost,
+    1
+  );
+  tile.tapImpactStart = state.now;
   state.dragging = true;
 }
 
@@ -439,6 +589,7 @@ async function loadConfig() {
     grid: { ...defaultConfig.grid, ...(config.grid || {}) },
     board: { ...defaultConfig.board, ...(config.board || {}) },
     animations: { ...defaultConfig.animations, ...(config.animations || {}) },
+    physics: { ...defaultConfig.physics, ...(config.physics || {}) },
   };
 }
 

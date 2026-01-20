@@ -7,3 +7,4 @@
 - New tiles should spawn only after space opens during cascades.
 - Selected tiles should be indicated by full-tile color instead of an outline.
 - Tile gap and board padding should feel balanced (keep them aligned for readability).
+- Lightweight physics (repulsion + bounce easing) can improve fall readability without changing grid logic.
