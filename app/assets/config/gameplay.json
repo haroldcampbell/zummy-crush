@@ -10,8 +10,8 @@
   },
   "animations": {
     "swapMs": 250,
-    "cascadeMs": 150,
-    "matchResolveMs": 800,
-    "cascadeStaggerMs": 10
+    "cascadeMs": 80,
+    "matchResolveMs": 150,
+    "cascadeStaggerMs": 80
   }
 }
