@@ -384,6 +384,13 @@ function computeFallDuration(fromRect, toRect) {
   return Math.max(state.config.animations.cascadeMs, distance / gravity);
 }
 
+function computeSpacingTime() {
+  const gravity = state.config.physics.gravityPxPerMs;
+  if (gravity <= 0) return state.config.animations.cascadeStaggerMs;
+  const spacingPx = state.gap * 2;
+  return spacingPx / gravity;
+}
+
 async function resolveMatchesAnimated() {
   let matched = findMatches(state.grid, state.gridRows, state.gridCols);
   let didMatch = false;
@@ -413,6 +420,7 @@ async function resolveMatchesAnimated() {
       return b.from.row - a.from.row;
     });
     const perColumnTime = new Map();
+    const spacingTimeMs = computeSpacingTime();
     for (const move of moves) {
       movingTiles.push(move.tile);
       fromRects.push(tileRect(move.from.row, move.from.col));
@@ -425,7 +433,7 @@ async function resolveMatchesAnimated() {
       delays.push(currentTime);
       perColumnTime.set(
         move.to.col,
-        currentTime + duration + state.config.animations.cascadeStaggerMs
+        currentTime + Math.max(spacingTimeMs, state.config.animations.cascadeStaggerMs)
       );
     }
     await animateCascadeWithDurations(movingTiles, fromRects, toRects, delays, durations);
@@ -441,6 +449,7 @@ async function resolveMatchesAnimated() {
     });
     const newPerColumnTime = new Map();
     const newPerColumnCount = new Map();
+    const newSpacingTimeMs = spacingTimeMs;
     for (const slot of emptySlots) {
       const tile = createTile(slot.row, slot.col);
       newTiles.push(tile);
@@ -456,7 +465,7 @@ async function resolveMatchesAnimated() {
       newDelays.push(currentTime);
       newPerColumnTime.set(
         slot.col,
-        currentTime + duration + state.config.animations.cascadeStaggerMs
+        currentTime + Math.max(newSpacingTimeMs, state.config.animations.cascadeStaggerMs)
       );
       state.grid[slot.row][slot.col] = tile;
     }
