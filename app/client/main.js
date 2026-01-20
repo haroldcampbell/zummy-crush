@@ -204,7 +204,7 @@ function animateSwap(a, b) {
   });
 }
 
-function animateCascade(tiles, from, to) {
+function animateCascade(tiles, from, to, delays) {
   if (tiles.length === 0) return Promise.resolve();
   return new Promise((resolve) => {
     state.animation = {
@@ -212,6 +212,7 @@ function animateCascade(tiles, from, to) {
       from,
       to,
       progresses: new Array(tiles.length).fill(0),
+      delays: delays || null,
       start: performance.now(),
       duration: state.config.animations.cascadeMs,
       staggerMs: state.config.animations.cascadeStaggerMs,
@@ -226,7 +227,8 @@ function updateAnimation(timestamp) {
   if (anim.staggerMs != null) {
     let completed = 0;
     for (let i = 0; i < anim.tiles.length; i += 1) {
-      const localElapsed = timestamp - (anim.start + anim.staggerMs * i);
+      const delay = anim.delays ? anim.delays[i] : anim.staggerMs * i;
+      const localElapsed = timestamp - (anim.start + delay);
       const progress = Math.min(Math.max(localElapsed / anim.duration, 0), 1);
       anim.progresses[i] = progress;
       if (progress >= 1) completed += 1;
@@ -282,6 +284,8 @@ async function resolveMatchesAnimated() {
     const movingTiles = [];
     const fromRects = [];
     const toRects = [];
+    const delays = [];
+    const moves = [];
     for (let row = 0; row < state.gridRows; row += 1) {
       for (let col = 0; col < state.gridCols; col += 1) {
         const tile = state.grid[row][col];
@@ -289,13 +293,28 @@ async function resolveMatchesAnimated() {
         const previous = previousPositions.get(tile);
         if (!previous) continue;
         if (previous.row !== tile.row || previous.col !== tile.col) {
-          movingTiles.push(tile);
-          fromRects.push(tileRect(previous.row, previous.col));
-          toRects.push(tileRect(tile.row, tile.col));
+          moves.push({
+            tile,
+            from: previous,
+            to: { row: tile.row, col: tile.col },
+          });
         }
       }
     }
-    await animateCascade(movingTiles, fromRects, toRects);
+    moves.sort((a, b) => {
+      if (a.to.col !== b.to.col) return a.to.col - b.to.col;
+      return b.from.row - a.from.row;
+    });
+    const perColumnIndex = new Map();
+    for (const move of moves) {
+      const currentIndex = perColumnIndex.get(move.to.col) || 0;
+      perColumnIndex.set(move.to.col, currentIndex + 1);
+      movingTiles.push(move.tile);
+      fromRects.push(tileRect(move.from.row, move.from.col));
+      toRects.push(tileRect(move.to.row, move.to.col));
+      delays.push(currentIndex * state.config.animations.cascadeStaggerMs);
+    }
+    await animateCascade(movingTiles, fromRects, toRects, delays);
     matched = findMatches(state.grid, state.gridRows, state.gridCols);
   }
 
