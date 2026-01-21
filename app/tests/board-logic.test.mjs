@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildGrid,
+  buildLineClearSet,
   buildMatchEvents,
   collapseExistingTiles,
   collapseColumns,
@@ -8,6 +9,7 @@ import {
   fillGridNoMatches,
   findMatches,
   normalizeMask,
+  selectMatchPowerUpCell,
 } from "../client/board-logic.mjs";
 
 function makeTile(row, col, letter) {
@@ -159,6 +161,63 @@ function testBuildMatchEvents() {
   );
 }
 
+function testBuildLineClearSet() {
+  const rows = 3;
+  const cols = 3;
+  const grid = [
+    [makeTile(0, 0, "A"), makeTile(0, 1, "B"), null],
+    [makeTile(1, 0, "C"), makeTile(1, 1, "D"), makeTile(1, 2, "E")],
+    [null, makeTile(2, 1, "F"), makeTile(2, 2, "G")],
+  ];
+  const horizontal = buildLineClearSet(grid, rows, cols, {
+    row: 1,
+    col: 1,
+    orientation: "horizontal",
+  });
+  assert.equal(horizontal.size, 3, "horizontal line clear includes row tiles");
+
+  const vertical = buildLineClearSet(grid, rows, cols, {
+    row: 1,
+    col: 1,
+    orientation: "vertical",
+  });
+  assert.equal(vertical.size, 3, "vertical line clear includes column tiles");
+}
+
+function testSelectMatchPowerUpCellPrefersSwapDestination() {
+  const cells = [
+    { row: 1, col: 1 },
+    { row: 1, col: 2 },
+    { row: 1, col: 3 },
+    { row: 1, col: 4 },
+  ];
+  const swapDestination = { row: 1, col: 3 };
+  const selected = selectMatchPowerUpCell(cells, { swapDestination });
+  assert.deepEqual(selected, swapDestination, "uses swap destination when available");
+}
+
+function testSelectMatchPowerUpCellEvenHorizontal() {
+  const cells = [
+    { row: 0, col: 0 },
+    { row: 0, col: 1 },
+    { row: 0, col: 2 },
+    { row: 0, col: 3 },
+  ];
+  const selected = selectMatchPowerUpCell(cells);
+  assert.deepEqual(selected, { row: 0, col: 2 }, "uses right-center for even horizontal");
+}
+
+function testSelectMatchPowerUpCellEvenVertical() {
+  const cells = [
+    { row: 0, col: 5 },
+    { row: 1, col: 5 },
+    { row: 2, col: 5 },
+    { row: 3, col: 5 },
+  ];
+  const selected = selectMatchPowerUpCell(cells);
+  assert.deepEqual(selected, { row: 2, col: 5 }, "uses lower-center for even vertical");
+}
+
 function runTests() {
   testNormalizeMask();
   testFindMatchesSkipsVoids();
@@ -167,6 +226,10 @@ function runTests() {
   testCollapseExistingTiles();
   testBuildGridCreatesNullsForVoids();
   testBuildMatchEvents();
+  testBuildLineClearSet();
+  testSelectMatchPowerUpCellPrefersSwapDestination();
+  testSelectMatchPowerUpCellEvenHorizontal();
+  testSelectMatchPowerUpCellEvenVertical();
   console.log("All board logic tests passed.");
 }
 

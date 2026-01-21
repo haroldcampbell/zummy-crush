@@ -1,14 +1,16 @@
 import {
+  buildLineClearSet,
   clearMatches,
   buildMatchEvents,
   collapseExistingTiles,
   createMask,
   fillGridNoMatches,
+  findMatchRuns,
   findMatches,
   normalizeMask,
+  selectMatchPowerUpCell,
 } from "./board-logic.mjs";
 import { computeRepulsionOffsets, computeTapScale, decayBoost } from "./physics-utils.mjs";
-import { selectPowerUpCell } from "./powerup-utils.mjs";
 
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
@@ -60,21 +62,43 @@ const defaultConfig = {
     },
     cascadeSpacingGapMultiplier: 2,
   },
+  debug: {
+    match5Test: {
+      enabled: false,
+      mode: "horizontal",
+    },
+  },
   powerUps: {
-    lineClear: {
-      fill: "#fff4d4",
-      stroke: "#8f5a12",
+    comboBonusMultiplier: 0.5,
+    "line-clear": {
+      fill: "#fef2de",
+      stroke: "#a96a1d",
       textColor: "#2a1b09",
-      stripeColor: "#8f5a12",
+      stripeColor: "#a96a1d",
       markerText: "L",
       badge: {
         enabled: true,
-        fill: "#8f5a12",
+        fill: "#a96a1d",
         stroke: "#2a1b09",
         textColor: "#fff8e6",
         radiusRatio: 0.18,
         offsetRatio: 0.08,
         fontScale: 0.85,
+      },
+    },
+    "color-clear": {
+      fill: "#fff3c4",
+      stroke: "#7a4f12",
+      textColor: "#2a1b09",
+      badge: {
+        enabled: true,
+        fill: "#7a4f12",
+        stroke: "#1e1206",
+        text: "XX",
+        textColor: "#fff6d6",
+        radiusRatio: 0.18,
+        offsetRatio: 0.08,
+        fontScale: 0.9,
       },
     },
   },
@@ -123,6 +147,65 @@ function updateScore() {
   scoreEl.textContent = scoreFormatter.format(state.score);
 }
 
+function isColorClearTile(tile) {
+  return tile && tile.powerUp && tile.powerUp.type === "color-clear";
+}
+
+function getPowerUpStyle(tile) {
+  if (!tile || !tile.powerUp) return null;
+  const palette = state.config.powerUps || {};
+  return palette[tile.powerUp.type] || null;
+}
+
+function drawColorClearBadge(tile, dx, dy, size, style) {
+  if (!isColorClearTile(tile)) return;
+  const badge = style?.badge;
+  if (!badge || !badge.enabled) return;
+  const radius = size * (badge.radiusRatio ?? 0.18);
+  const offsetRatio = badge.offsetRatio ?? 0.08;
+  const badgeX = dx + size - radius - size * offsetRatio;
+  const badgeY = dy + radius + size * offsetRatio;
+  ctx.fillStyle = badge.fill || "#2b2b2b";
+  ctx.strokeStyle = badge.stroke || "#1f1f1f";
+  ctx.lineWidth = Math.max(1, size * 0.04);
+  ctx.beginPath();
+  ctx.arc(badgeX, badgeY, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  if (badge.text) {
+    ctx.fillStyle = badge.textColor || "#fff";
+    ctx.font = `${Math.floor(radius * (badge.fontScale ?? 0.9))}px Georgia`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(badge.text, badgeX, badgeY);
+  }
+}
+
+function drawLineClearBadge(tile, dx, dy, size, style) {
+  if (!isLineClearTile(tile)) return;
+  const badge = style?.badge;
+  if (!badge || badge.enabled === false) return;
+  const radius = size * (badge.radiusRatio ?? 0.18);
+  const offsetRatio = badge.offsetRatio ?? 0.08;
+  const badgeX = dx + size - radius - size * offsetRatio;
+  const badgeY = dy + radius + size * offsetRatio;
+  ctx.fillStyle = badge.fill || "#2b2b2b";
+  ctx.strokeStyle = badge.stroke || "#1f1f1f";
+  ctx.lineWidth = Math.max(1, size * 0.04);
+  ctx.beginPath();
+  ctx.arc(badgeX, badgeY, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  const markerText = style?.markerText || "L";
+  ctx.fillStyle = badge.textColor || "#fff";
+  ctx.font = `${Math.floor(radius * (badge.fontScale ?? 0.85))}px Georgia`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(markerText, badgeX, badgeY + 1);
+}
+
 function resizeCanvas() {
   const width = canvas.clientWidth;
   canvas.width = width * window.devicePixelRatio;
@@ -137,6 +220,153 @@ function randomLetter() {
   return letters[Math.floor(Math.random() * letters.length)];
 }
 
+function findCenteredMaskRun(mask, rows, cols, length, orientation) {
+  const centerRow = (rows - 1) / 2;
+  const centerCol = (cols - 1) / 2;
+  let best = null;
+  let bestDist = Number.POSITIVE_INFINITY;
+
+  const considerWindow = (startRow, startCol) => {
+    const midOffset = (length - 1) / 2;
+    const runCenterRow = orientation === "horizontal" ? startRow : startRow + midOffset;
+    const runCenterCol = orientation === "horizontal" ? startCol + midOffset : startCol;
+    const dr = runCenterRow - centerRow;
+    const dc = runCenterCol - centerCol;
+    const dist = dr * dr + dc * dc;
+    if (dist < bestDist) {
+      bestDist = dist;
+      const cells = [];
+      for (let i = 0; i < length; i += 1) {
+        const row = orientation === "horizontal" ? startRow : startRow + i;
+        const col = orientation === "horizontal" ? startCol + i : startCol;
+        cells.push({ row, col });
+      }
+      best = cells;
+    }
+  };
+
+  if (orientation === "horizontal") {
+    for (let row = 0; row < rows; row += 1) {
+      let runStart = null;
+      let runLength = 0;
+      for (let col = 0; col <= cols; col += 1) {
+        const isFilled = col < cols && mask[row][col] === 1;
+        if (isFilled) {
+          if (runStart === null) runStart = col;
+          runLength += 1;
+        }
+        if (!isFilled || col === cols) {
+          if (runStart !== null && runLength >= length) {
+            for (let start = runStart; start <= runStart + runLength - length; start += 1) {
+              considerWindow(row, start);
+            }
+          }
+          runStart = null;
+          runLength = 0;
+        }
+      }
+    }
+  } else {
+    for (let col = 0; col < cols; col += 1) {
+      let runStart = null;
+      let runLength = 0;
+      for (let row = 0; row <= rows; row += 1) {
+        const isFilled = row < rows && mask[row][col] === 1;
+        if (isFilled) {
+          if (runStart === null) runStart = row;
+          runLength += 1;
+        }
+        if (!isFilled || row === rows) {
+          if (runStart !== null && runLength >= length) {
+            for (let start = runStart; start <= runStart + runLength - length; start += 1) {
+              considerWindow(start, col);
+            }
+          }
+          runStart = null;
+          runLength = 0;
+        }
+      }
+    }
+  }
+
+  return best;
+}
+
+function buildMatch5TestGrid(mode) {
+  const grid = [];
+  for (let row = 0; row < state.gridRows; row += 1) {
+    const rowTiles = [];
+    for (let col = 0; col < state.gridCols; col += 1) {
+      if (state.mask[row][col] !== 1) {
+        rowTiles.push(null);
+        continue;
+      }
+      const letter = letters[(row + col) % letters.length];
+      rowTiles.push(createTile(row, col, letter));
+    }
+    grid.push(rowTiles);
+  }
+
+  const wantsHorizontal = mode === "horizontal" || mode === "both";
+  const wantsVertical = mode === "vertical" || mode === "both";
+
+  const ensureDifferent = (row, col, disallowLetter) => {
+    if (row < 0 || col < 0 || row >= state.gridRows || col >= state.gridCols) return;
+    if (state.mask[row][col] !== 1) return;
+    const tile = grid[row][col];
+    if (!tile) return;
+    if (tile.letter !== disallowLetter) return;
+    const options = letters.filter((letter) => letter !== disallowLetter);
+    tile.letter = options.length ? options[0] : tile.letter;
+  };
+
+  const horizontalLetter = letters[0];
+  const verticalLetter =
+    mode === "both" ? horizontalLetter : letters[1] || letters[0];
+
+  if (wantsHorizontal) {
+    const run = findCenteredMaskRun(
+      state.mask,
+      state.gridRows,
+      state.gridCols,
+      5,
+      "horizontal"
+    );
+    if (run) {
+      for (const cell of run) {
+        const tile = grid[cell.row][cell.col];
+        if (tile) tile.letter = horizontalLetter;
+      }
+      const left = run[0];
+      const right = run[run.length - 1];
+      ensureDifferent(left.row, left.col - 1, horizontalLetter);
+      ensureDifferent(right.row, right.col + 1, horizontalLetter);
+    }
+  }
+
+  if (wantsVertical) {
+    const run = findCenteredMaskRun(
+      state.mask,
+      state.gridRows,
+      state.gridCols,
+      5,
+      "vertical"
+    );
+    if (run) {
+      for (const cell of run) {
+        const tile = grid[cell.row][cell.col];
+        if (tile) tile.letter = verticalLetter;
+      }
+      const top = run[0];
+      const bottom = run[run.length - 1];
+      ensureDifferent(top.row - 1, top.col, verticalLetter);
+      ensureDifferent(bottom.row + 1, bottom.col, verticalLetter);
+    }
+  }
+
+  return grid;
+}
+
 function createTile(row, col, letter = randomLetter()) {
   return {
     row,
@@ -148,14 +378,47 @@ function createTile(row, col, letter = randomLetter()) {
   };
 }
 
+function isPowerUpTile(tile) {
+  return Boolean(tile && tile.powerUp && tile.powerUp.type);
+}
+
+function isLineClearTile(tile) {
+  return tile && tile.powerUp && tile.powerUp.type === "line-clear";
+}
+
+function drawLineClearStripe(tile, dx, dy, size, style) {
+  if (!isLineClearTile(tile)) return;
+  const orientation = tile.powerUp.orientation || "horizontal";
+  const stripeColor = style?.stripeColor || "#2b2b2b";
+  const inset = size * 0.2;
+  ctx.strokeStyle = stripeColor;
+  ctx.lineWidth = Math.max(2, size * 0.08);
+  ctx.beginPath();
+  if (orientation === "vertical") {
+    const x = dx + size / 2;
+    ctx.moveTo(x, dy + inset);
+    ctx.lineTo(x, dy + size - inset);
+  } else {
+    const y = dy + size / 2;
+    ctx.moveTo(dx + inset, y);
+    ctx.lineTo(dx + size - inset, y);
+  }
+  ctx.stroke();
+}
+
 function initGrid() {
-  state.grid = fillGridNoMatches(
-    state.gridRows,
-    state.gridCols,
-    state.mask,
-    letters,
-    createTile
-  );
+  const debugConfig = state.config.debug?.match5Test;
+  if (debugConfig && debugConfig.enabled) {
+    state.grid = buildMatch5TestGrid(debugConfig.mode || "horizontal");
+  } else {
+    state.grid = fillGridNoMatches(
+      state.gridRows,
+      state.gridCols,
+      state.mask,
+      letters,
+      createTile
+    );
+  }
 }
 
 function resetScore() {
@@ -231,14 +494,17 @@ function drawTile(tile, offset, scale) {
   ctx.fill();
   ctx.stroke();
 
+  drawColorClearBadge(tile, dx, dy, scaledSize, powerUpStyle);
   drawLineClearStripe(tile, dx, dy, scaledSize, powerUpStyle);
-  drawPowerUpBadge(tile, dx, dy, scaledSize, powerUpStyle);
+  drawLineClearBadge(tile, dx, dy, scaledSize, powerUpStyle);
 
-  ctx.fillStyle = textColor;
-  ctx.font = `${Math.floor(scaledSize * 0.5)}px Georgia`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(tile.letter, dx + scaledSize / 2, dy + scaledSize / 2);
+  if (tile.letter) {
+    ctx.fillStyle = textColor;
+    ctx.font = `${Math.floor(scaledSize * 0.5)}px Georgia`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(tile.letter, dx + scaledSize / 2, dy + scaledSize / 2);
+  }
 }
 
 function render(timestamp) {
@@ -450,51 +716,80 @@ function getCascadeStaggerMs() {
   return min + Math.random() * (max - min);
 }
 
-function getPowerUpStyle(tile) {
-  if (!tile || !tile.powerUp) return null;
-  return state.config.powerUps?.lineClear || null;
-}
+async function collapseAndRefill() {
+  const { nextGrid, moves, emptySlots } = collapseExistingTiles(
+    state.grid,
+    state.gridRows,
+    state.gridCols,
+    state.mask
+  );
+  state.grid = nextGrid;
 
-function drawLineClearStripe(tile, dx, dy, size, style) {
-  if (!tile?.powerUp || tile.powerUp.type !== "line-clear") return;
-  const stripeColor = style?.stripeColor || "#2b2b2b";
-  const inset = size * 0.2;
-  ctx.strokeStyle = stripeColor;
-  ctx.lineWidth = Math.max(2, size * 0.08);
-  ctx.beginPath();
-  if (tile.powerUp.orientation === "vertical") {
-    const x = dx + size / 2;
-    ctx.moveTo(x, dy + inset);
-    ctx.lineTo(x, dy + size - inset);
-  } else {
-    const y = dy + size / 2;
-    ctx.moveTo(dx + inset, y);
-    ctx.lineTo(dx + size - inset, y);
+  const movingTiles = [];
+  const fromRects = [];
+  const toRects = [];
+  const delays = [];
+  const durations = [];
+  moves.sort((a, b) => {
+    if (a.to.col !== b.to.col) return a.to.col - b.to.col;
+    return b.from.row - a.from.row;
+  });
+  const perColumnTime = new Map();
+  const spacingTimeMs = computeSpacingTime();
+  for (const move of moves) {
+    movingTiles.push(move.tile);
+    fromRects.push(tileRect(move.from.row, move.from.col));
+    toRects.push(tileRect(move.to.row, move.to.col));
+    const fromRect = fromRects[fromRects.length - 1];
+    const toRect = toRects[toRects.length - 1];
+    const duration = computeFallDuration(fromRect, toRect);
+    durations.push(duration);
+    const currentTime = perColumnTime.get(move.to.col) || 0;
+    delays.push(currentTime);
+    const staggerMs = getCascadeStaggerMs();
+    perColumnTime.set(move.to.col, currentTime + Math.max(spacingTimeMs, staggerMs));
   }
-  ctx.stroke();
-}
+  await animateCascadeWithDurations(movingTiles, fromRects, toRects, delays, durations);
 
-function drawPowerUpBadge(tile, dx, dy, size, style) {
-  if (!tile?.powerUp || tile.powerUp.type !== "line-clear") return;
-  const badge = style?.badge;
-  if (!badge || badge.enabled === false) return;
-  const radius = size * (badge.radiusRatio ?? 0.18);
-  const offset = size * (badge.offsetRatio ?? 0.08);
-  const cx = dx + size - radius - offset;
-  const cy = dy + radius + offset;
-  ctx.fillStyle = badge.fill || "#2b2b2b";
-  ctx.strokeStyle = badge.stroke || "#1f1f1f";
-  ctx.lineWidth = Math.max(1, size * 0.03);
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  const markerText = style?.markerText || "L";
-  ctx.fillStyle = badge.textColor || "#fff";
-  ctx.font = `${Math.floor(radius * 1.2 * (badge.fontScale ?? 1))}px Georgia`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(markerText, cx, cy + 1);
+  const newTiles = [];
+  const newFromRects = [];
+  const newToRects = [];
+  const newDelays = [];
+  const newDurations = [];
+  emptySlots.sort((a, b) => {
+    if (a.col !== b.col) return a.col - b.col;
+    return b.row - a.row;
+  });
+  const newPerColumnTime = new Map();
+  const newPerColumnCount = new Map();
+  const newSpacingTimeMs = spacingTimeMs;
+  for (const slot of emptySlots) {
+    const tile = createTile(slot.row, slot.col);
+    newTiles.push(tile);
+    const count = newPerColumnCount.get(slot.col) || 0;
+    newPerColumnCount.set(slot.col, count + 1);
+    newFromRects.push(tileRect(-1 - count, slot.col));
+    newToRects.push(tileRect(slot.row, slot.col));
+    const fromRect = newFromRects[newFromRects.length - 1];
+    const toRect = newToRects[newFromRects.length - 1];
+    const duration = computeFallDuration(fromRect, toRect);
+    newDurations.push(duration);
+    const currentTime = newPerColumnTime.get(slot.col) || 0;
+    newDelays.push(currentTime);
+    const staggerMs = getCascadeStaggerMs();
+    newPerColumnTime.set(
+      slot.col,
+      currentTime + Math.max(newSpacingTimeMs, staggerMs)
+    );
+    state.grid[slot.row][slot.col] = tile;
+  }
+  await animateCascadeWithDurations(
+    newTiles,
+    newFromRects,
+    newToRects,
+    newDelays,
+    newDurations
+  );
 }
 
 async function resolveMatchesAnimated({ swapOrigin = null, swapDestination = null } = {}) {
@@ -516,114 +811,85 @@ async function resolveMatchesAnimated({ swapOrigin = null, swapDestination = nul
     );
     state.matchEventIdCounter = nextEventId;
     emitMatchEvents(events);
-    const protectedCells = new Set();
-    for (const event of events) {
-      if (event.length !== 4) continue;
-      const cell = selectPowerUpCell(event.cells, {
-        orientation: event.orientation,
-        swapDestination,
-        cascadeIndex,
+
+    const runs = findMatchRuns(state.grid, state.gridRows, state.gridCols);
+    const clearSet = new Set(matched);
+    const reservedPowerUpCells = new Set();
+    const spawnSwapDestination = cascadeIndex === 0 ? swapDestination : null;
+    for (const run of runs) {
+      if (run.length !== 5) continue;
+      const spawnCell = selectMatchPowerUpCell(run.cells, {
+        swapDestination: spawnSwapDestination,
+        reserved: reservedPowerUpCells,
       });
-      if (!cell) continue;
-      const key = `${cell.row},${cell.col}`;
-      const tile = state.grid[cell.row]?.[cell.col];
-      if (!tile || tile.powerUp) continue;
-      tile.powerUp = {
-        type: "line-clear",
-        orientation: event.orientation,
-      };
-      protectedCells.add(key);
+      if (!spawnCell) continue;
+      const key = `${spawnCell.row},${spawnCell.col}`;
+      reservedPowerUpCells.add(key);
+      clearSet.delete(key);
+      const tile = state.grid[spawnCell.row][spawnCell.col];
+      if (tile) {
+        tile.powerUp = { type: "color-clear" };
+      }
     }
+    for (const run of runs) {
+      if (run.length !== 4) continue;
+      const spawnCell = selectMatchPowerUpCell(run.cells, {
+        swapDestination: spawnSwapDestination,
+        reserved: reservedPowerUpCells,
+      });
+      if (!spawnCell) continue;
+      const key = `${spawnCell.row},${spawnCell.col}`;
+      reservedPowerUpCells.add(key);
+      clearSet.delete(key);
+      const tile = state.grid[spawnCell.row][spawnCell.col];
+      if (tile) {
+        tile.powerUp = { type: "line-clear", orientation: run.orientation };
+      }
+    }
+
     const points = scoreMatches(matched);
     state.score += points;
     updateScore();
-    for (const key of protectedCells) {
-      matched.delete(key);
-    }
-    clearMatches(state.grid, matched);
+    clearMatches(state.grid, clearSet);
     await delay(state.config.animations.matchResolveMs);
-    const { nextGrid, moves, emptySlots } = collapseExistingTiles(
-      state.grid,
-      state.gridRows,
-      state.gridCols,
-      state.mask
-    );
-    state.grid = nextGrid;
-
-    const movingTiles = [];
-    const fromRects = [];
-    const toRects = [];
-    const delays = [];
-    const durations = [];
-    moves.sort((a, b) => {
-      if (a.to.col !== b.to.col) return a.to.col - b.to.col;
-      return b.from.row - a.from.row;
-    });
-    const perColumnTime = new Map();
-    const spacingTimeMs = computeSpacingTime();
-    for (const move of moves) {
-      movingTiles.push(move.tile);
-      fromRects.push(tileRect(move.from.row, move.from.col));
-      toRects.push(tileRect(move.to.row, move.to.col));
-      const fromRect = fromRects[fromRects.length - 1];
-      const toRect = toRects[toRects.length - 1];
-      const duration = computeFallDuration(fromRect, toRect);
-      durations.push(duration);
-      const currentTime = perColumnTime.get(move.to.col) || 0;
-      delays.push(currentTime);
-      const staggerMs = getCascadeStaggerMs();
-      perColumnTime.set(
-        move.to.col,
-        currentTime + Math.max(spacingTimeMs, staggerMs)
-      );
-    }
-    await animateCascadeWithDurations(movingTiles, fromRects, toRects, delays, durations);
-
-    const newTiles = [];
-    const newFromRects = [];
-    const newToRects = [];
-    const newDelays = [];
-    const newDurations = [];
-    emptySlots.sort((a, b) => {
-      if (a.col !== b.col) return a.col - b.col;
-      return b.row - a.row;
-    });
-    const newPerColumnTime = new Map();
-    const newPerColumnCount = new Map();
-    const newSpacingTimeMs = spacingTimeMs;
-    for (const slot of emptySlots) {
-      const tile = createTile(slot.row, slot.col);
-      newTiles.push(tile);
-      const count = newPerColumnCount.get(slot.col) || 0;
-      newPerColumnCount.set(slot.col, count + 1);
-      newFromRects.push(tileRect(-1 - count, slot.col));
-      newToRects.push(tileRect(slot.row, slot.col));
-      const fromRect = newFromRects[newFromRects.length - 1];
-      const toRect = newToRects[newToRects.length - 1];
-      const duration = computeFallDuration(fromRect, toRect);
-      newDurations.push(duration);
-      const currentTime = newPerColumnTime.get(slot.col) || 0;
-      newDelays.push(currentTime);
-      const staggerMs = getCascadeStaggerMs();
-      newPerColumnTime.set(
-        slot.col,
-        currentTime + Math.max(newSpacingTimeMs, staggerMs)
-      );
-      state.grid[slot.row][slot.col] = tile;
-    }
-    await animateCascadeWithDurations(
-      newTiles,
-      newFromRects,
-      newToRects,
-      newDelays,
-      newDurations
-    );
+    await collapseAndRefill();
     matched = findMatches(state.grid, state.gridRows, state.gridCols);
     cascadeIndex += 1;
-    swapDestination = null;
   }
 
   return didMatch;
+}
+
+function mergeKeySet(target, source) {
+  if (!source) return;
+  for (const key of source) {
+    target.add(key);
+  }
+}
+
+async function activateLineClearSwap(lineClearTiles, { hasCombo = false } = {}) {
+  if (!lineClearTiles || lineClearTiles.length === 0) return false;
+  const clearSet = new Set();
+  for (const tile of lineClearTiles) {
+    if (!tile || !tile.powerUp) continue;
+    const keys = buildLineClearSet(state.grid, state.gridRows, state.gridCols, {
+      row: tile.row,
+      col: tile.col,
+      orientation: tile.powerUp.orientation,
+    });
+    mergeKeySet(clearSet, keys);
+  }
+  if (clearSet.size === 0) return false;
+  const clearPoints = scoreMatches(clearSet);
+  const comboMultiplier = Number(state.config.powerUps?.comboBonusMultiplier) || 0;
+  const comboBonus = hasCombo ? Math.round(clearPoints * comboMultiplier) : 0;
+  state.score += clearPoints + comboBonus;
+  updateScore();
+  clearMatches(state.grid, clearSet);
+  await delay(state.config.animations.matchResolveMs);
+  await collapseAndRefill();
+  await resolveMatchesAnimated();
+  return true;
 }
 
 function isAdjacent(a, b) {
@@ -643,10 +909,14 @@ async function handleSwap(targetTile) {
   const swapDestination = { row: second.row, col: second.col };
   state.selected = null;
   state.inputLocked = true;
+  const lineClearTiles = [first, second].filter(isLineClearTile);
+  const hasCombo = isPowerUpTile(first) && isPowerUpTile(second) && lineClearTiles.length > 0;
 
   try {
     await animateSwap(first, second);
     swapTiles(first, second);
+    const activated = await activateLineClearSwap(lineClearTiles, { hasCombo });
+    if (activated) return;
     const matched = await resolveMatchesAnimated({ swapOrigin, swapDestination });
     if (!matched) {
       await animateSwap(first, second);
@@ -742,18 +1012,11 @@ async function loadConfig() {
   const configUrl = new URL("../assets/config/gameplay.json", window.location.href);
   const config = await fetchJson(configUrl);
   if (!config) return defaultConfig;
-  const powerUps = {
-    ...defaultConfig.powerUps,
-    ...(config.powerUps || {}),
-    lineClear: {
-      ...defaultConfig.powerUps.lineClear,
-      ...(config.powerUps?.lineClear || {}),
-      badge: {
-        ...defaultConfig.powerUps.lineClear.badge,
-        ...(config.powerUps?.lineClear?.badge || {}),
-      },
-    },
-  };
+  const powerUpOverrides = config.powerUps || {};
+  const colorClearOverrides =
+    powerUpOverrides["color-clear"] || powerUpOverrides.colorClear || {};
+  const lineClearOverrides =
+    powerUpOverrides["line-clear"] || powerUpOverrides.lineClear || {};
   return {
     ...defaultConfig,
     ...config,
@@ -764,7 +1027,34 @@ async function loadConfig() {
     board: { ...defaultConfig.board, ...(config.board || {}) },
     animations: { ...defaultConfig.animations, ...(config.animations || {}) },
     physics: { ...defaultConfig.physics, ...(config.physics || {}) },
-    powerUps,
+    debug: {
+      ...defaultConfig.debug,
+      ...(config.debug || {}),
+      match5Test: {
+        ...defaultConfig.debug.match5Test,
+        ...((config.debug && config.debug.match5Test) || {}),
+      },
+    },
+    powerUps: {
+      ...defaultConfig.powerUps,
+      ...powerUpOverrides,
+      "line-clear": {
+        ...defaultConfig.powerUps["line-clear"],
+        ...lineClearOverrides,
+        badge: {
+          ...defaultConfig.powerUps["line-clear"].badge,
+          ...(lineClearOverrides.badge || {}),
+        },
+      },
+      "color-clear": {
+        ...defaultConfig.powerUps["color-clear"],
+        ...colorClearOverrides,
+        badge: {
+          ...defaultConfig.powerUps["color-clear"].badge,
+          ...(colorClearOverrides.badge || {}),
+        },
+      },
+    },
   };
 }
 

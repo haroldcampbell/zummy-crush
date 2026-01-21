@@ -115,6 +115,93 @@ export function findMatches(grid, rows, cols) {
   return matches;
 }
 
+function cellKey(cell) {
+  return `${cell.row},${cell.col}`;
+}
+
+export function findMatchRuns(grid, rows, cols) {
+  const runs = [];
+
+  for (let row = 0; row < rows; row += 1) {
+    let runStart = 0;
+    for (let col = 1; col <= cols; col += 1) {
+      const current = col < cols ? grid[row][col] : null;
+      const prev = grid[row][col - 1];
+      const isSame = current && prev && current.letter === prev.letter;
+      if (!isSame) {
+        const runLength = col - runStart;
+        if (runLength >= 3) {
+          const cells = [];
+          for (let c = runStart; c < col; c += 1) {
+            cells.push({ row, col: c });
+          }
+          runs.push({ cells, length: runLength, orientation: "horizontal" });
+        }
+        runStart = col;
+      }
+    }
+  }
+
+  for (let col = 0; col < cols; col += 1) {
+    let runStart = 0;
+    for (let row = 1; row <= rows; row += 1) {
+      const current = row < rows ? grid[row][col] : null;
+      const prev = grid[row - 1][col];
+      const isSame = current && prev && current.letter === prev.letter;
+      if (!isSame) {
+        const runLength = row - runStart;
+        if (runLength >= 3) {
+          const cells = [];
+          for (let r = runStart; r < row; r += 1) {
+            cells.push({ row: r, col });
+          }
+          runs.push({ cells, length: runLength, orientation: "vertical" });
+        }
+        runStart = row;
+      }
+    }
+  }
+
+  return runs;
+}
+
+export function selectMatchPowerUpCell(
+  cells,
+  { swapDestination = null, reserved = null } = {}
+) {
+  if (!Array.isArray(cells) || cells.length === 0) return null;
+  const reservedSet = reserved instanceof Set ? reserved : new Set();
+
+  if (swapDestination) {
+    const isInMatch = cells.some(
+      (cell) => cell.row === swapDestination.row && cell.col === swapDestination.col
+    );
+    if (isInMatch && !reservedSet.has(cellKey(swapDestination))) {
+      return { row: swapDestination.row, col: swapDestination.col };
+    }
+  }
+
+  const centerIndex = Math.floor(cells.length / 2);
+  const indices = [centerIndex];
+  for (let offset = 1; offset < cells.length; offset += 1) {
+    const right = centerIndex + offset;
+    if (right < cells.length) indices.push(right);
+    const left = centerIndex - offset;
+    if (left >= 0) indices.push(left);
+  }
+
+  for (const index of indices) {
+    const cell = cells[index];
+    if (!cell) continue;
+    const key = cellKey(cell);
+    if (!reservedSet.has(key)) {
+      return { row: cell.row, col: cell.col };
+    }
+  }
+
+  return null;
+}
+
 /**
  * Match-event contract v1.
  * Fields: id, length, orientation, swapOrigin (optional), cascadeIndex.
@@ -186,6 +273,26 @@ export function buildMatchEvents(
   return { events, nextEventId };
 }
 
+export function buildLineClearSet(grid, rows, cols, { row, col, orientation }) {
+  const keys = new Set();
+  if (!grid || row == null || col == null) return keys;
+  if (orientation === "horizontal") {
+    if (row < 0 || row >= rows) return keys;
+    for (let c = 0; c < cols; c += 1) {
+      const tile = grid[row][c];
+      if (tile) keys.add(`${row},${c}`);
+    }
+    return keys;
+  }
+  if (orientation === "vertical") {
+    if (col < 0 || col >= cols) return keys;
+    for (let r = 0; r < rows; r += 1) {
+      const tile = grid[r][col];
+      if (tile) keys.add(`${r},${col}`);
+    }
+  }
+  return keys;
+}
 export function clearMatches(grid, matchSet) {
   for (const key of matchSet) {
     const [row, col] = key.split(",").map(Number);

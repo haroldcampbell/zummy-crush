@@ -4,6 +4,8 @@ This process governs how we move from ideas to specs to implementation. It prior
 
 ## Workflow (Spec-Driven)
 
+Note: This workflow is governed by `docs/multi-agent-strategy.md` for multi-agent coordination and must be followed.
+
 1. Spec definition
     - Draft a spec with scope, non-scope, and DoD.
 2. Collaborative spec review
@@ -24,6 +26,8 @@ This process governs how we move from ideas to specs to implementation. It prior
     - Each spec results in a git commit and a PR (or one PR per milestone if needed).
     - Commit regularly with small, focused changes to reduce risk.
     - PRs are always from a branch into main.
+    - Ensure the worktree `origin` remote points to the GitHub repo (copy the URL from `main`).
+    - Create PRs using the git-control MCP tools (not `gh`).
     - Required workflow:
         1. Create a branch
         2. Commit

@@ -115,8 +115,9 @@ Before work begins, confirm:
 7. Commit regularly (small, focused commits).
 8. Add/update tests for core logic and regressions where applicable.
 9. Write a session hand-off in `hand-offs/` before opening the PR.
-10. Open a PR into `main` and wait for explicit approval to merge.
-11. After merge approval, delete the branch and remove lock files.
+10. Ensure the worktree `origin` remote points to the GitHub repo (copy the URL from `main`).
+11. Open a PR into `main` using the git-control MCP tools and wait for explicit approval to merge.
+12. After merge approval, delete the branch and remove lock files.
 
 ## Stop Conditions
 
@@ -126,3 +127,8 @@ Before work begins, confirm:
 
 - One agent implements, another reviews (when possible).
 - PRs are merged only with explicit user approval.
+
+## Rebase Standard
+
+- Before opening a PR, rebase your feature branch onto `origin/main` to incorporate the latest shared changes.
+- Resolve any conflicts during the rebase; do not force-update `main`.
