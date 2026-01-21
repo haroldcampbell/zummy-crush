@@ -25,6 +25,7 @@ From the repo root:
 ```sh
 node app/tests/board-logic.test.mjs
 node app/tests/physics-utils.test.mjs
+node app/tests/powerup-utils.test.mjs
 ```
 
 ## Branching Convention

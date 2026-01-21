@@ -8,6 +8,7 @@ import {
   normalizeMask,
 } from "./board-logic.mjs";
 import { computeRepulsionOffsets, computeTapScale, decayBoost } from "./physics-utils.mjs";
+import { selectPowerUpCell } from "./powerup-utils.mjs";
 
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
@@ -58,6 +59,24 @@ const defaultConfig = {
       scaleDurationMs: 140,
     },
     cascadeSpacingGapMultiplier: 2,
+  },
+  powerUps: {
+    lineClear: {
+      fill: "#fff4d4",
+      stroke: "#8f5a12",
+      textColor: "#2a1b09",
+      stripeColor: "#8f5a12",
+      markerText: "L",
+      badge: {
+        enabled: true,
+        fill: "#8f5a12",
+        stroke: "#2a1b09",
+        textColor: "#fff8e6",
+        radiusRatio: 0.18,
+        offsetRatio: 0.08,
+        fontScale: 0.85,
+      },
+    },
   },
 };
 
@@ -123,6 +142,7 @@ function createTile(row, col, letter = randomLetter()) {
     row,
     col,
     letter,
+    powerUp: null,
     repulseBoost: 0,
     tapImpactStart: 0,
   };
@@ -198,15 +218,23 @@ function drawTile(tile, offset, scale) {
   dx -= (scaledSize - tileSize) / 2;
   dy -= (scaledSize - tileSize) / 2;
 
-  ctx.fillStyle = state.selected === tile ? "#f6b48c" : "#fff";
-  ctx.strokeStyle = "#2b2b2b";
+  const powerUpStyle = getPowerUpStyle(tile);
+  const baseFill = powerUpStyle?.fill || "#fff";
+  const baseStroke = powerUpStyle?.stroke || "#2b2b2b";
+  const textColor = powerUpStyle?.textColor || "#1f1f1f";
+
+  ctx.fillStyle = state.selected === tile ? "#f6b48c" : baseFill;
+  ctx.strokeStyle = baseStroke;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.roundRect(dx, dy, scaledSize, scaledSize, 10);
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = "#1f1f1f";
+  drawLineClearStripe(tile, dx, dy, scaledSize, powerUpStyle);
+  drawPowerUpBadge(tile, dx, dy, scaledSize, powerUpStyle);
+
+  ctx.fillStyle = textColor;
   ctx.font = `${Math.floor(scaledSize * 0.5)}px Georgia`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -422,7 +450,54 @@ function getCascadeStaggerMs() {
   return min + Math.random() * (max - min);
 }
 
-async function resolveMatchesAnimated({ swapOrigin = null } = {}) {
+function getPowerUpStyle(tile) {
+  if (!tile || !tile.powerUp) return null;
+  return state.config.powerUps?.lineClear || null;
+}
+
+function drawLineClearStripe(tile, dx, dy, size, style) {
+  if (!tile?.powerUp || tile.powerUp.type !== "line-clear") return;
+  const stripeColor = style?.stripeColor || "#2b2b2b";
+  const inset = size * 0.2;
+  ctx.strokeStyle = stripeColor;
+  ctx.lineWidth = Math.max(2, size * 0.08);
+  ctx.beginPath();
+  if (tile.powerUp.orientation === "vertical") {
+    const x = dx + size / 2;
+    ctx.moveTo(x, dy + inset);
+    ctx.lineTo(x, dy + size - inset);
+  } else {
+    const y = dy + size / 2;
+    ctx.moveTo(dx + inset, y);
+    ctx.lineTo(dx + size - inset, y);
+  }
+  ctx.stroke();
+}
+
+function drawPowerUpBadge(tile, dx, dy, size, style) {
+  if (!tile?.powerUp || tile.powerUp.type !== "line-clear") return;
+  const badge = style?.badge;
+  if (!badge || badge.enabled === false) return;
+  const radius = size * (badge.radiusRatio ?? 0.18);
+  const offset = size * (badge.offsetRatio ?? 0.08);
+  const cx = dx + size - radius - offset;
+  const cy = dy + radius + offset;
+  ctx.fillStyle = badge.fill || "#2b2b2b";
+  ctx.strokeStyle = badge.stroke || "#1f1f1f";
+  ctx.lineWidth = Math.max(1, size * 0.03);
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  const markerText = style?.markerText || "L";
+  ctx.fillStyle = badge.textColor || "#fff";
+  ctx.font = `${Math.floor(radius * 1.2 * (badge.fontScale ?? 1))}px Georgia`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(markerText, cx, cy + 1);
+}
+
+async function resolveMatchesAnimated({ swapOrigin = null, swapDestination = null } = {}) {
   let matched = findMatches(state.grid, state.gridRows, state.gridCols);
   let didMatch = false;
   let cascadeIndex = 0;
@@ -441,9 +516,30 @@ async function resolveMatchesAnimated({ swapOrigin = null } = {}) {
     );
     state.matchEventIdCounter = nextEventId;
     emitMatchEvents(events);
+    const protectedCells = new Set();
+    for (const event of events) {
+      if (event.length !== 4) continue;
+      const cell = selectPowerUpCell(event.cells, {
+        orientation: event.orientation,
+        swapDestination,
+        cascadeIndex,
+      });
+      if (!cell) continue;
+      const key = `${cell.row},${cell.col}`;
+      const tile = state.grid[cell.row]?.[cell.col];
+      if (!tile || tile.powerUp) continue;
+      tile.powerUp = {
+        type: "line-clear",
+        orientation: event.orientation,
+      };
+      protectedCells.add(key);
+    }
     const points = scoreMatches(matched);
     state.score += points;
     updateScore();
+    for (const key of protectedCells) {
+      matched.delete(key);
+    }
     clearMatches(state.grid, matched);
     await delay(state.config.animations.matchResolveMs);
     const { nextGrid, moves, emptySlots } = collapseExistingTiles(
@@ -524,6 +620,7 @@ async function resolveMatchesAnimated({ swapOrigin = null } = {}) {
     );
     matched = findMatches(state.grid, state.gridRows, state.gridCols);
     cascadeIndex += 1;
+    swapDestination = null;
   }
 
   return didMatch;
@@ -543,13 +640,14 @@ async function handleSwap(targetTile) {
   const first = selected;
   const second = targetTile;
   const swapOrigin = { row: first.row, col: first.col };
+  const swapDestination = { row: second.row, col: second.col };
   state.selected = null;
   state.inputLocked = true;
 
   try {
     await animateSwap(first, second);
     swapTiles(first, second);
-    const matched = await resolveMatchesAnimated({ swapOrigin });
+    const matched = await resolveMatchesAnimated({ swapOrigin, swapDestination });
     if (!matched) {
       await animateSwap(first, second);
       swapTiles(first, second);
@@ -644,6 +742,18 @@ async function loadConfig() {
   const configUrl = new URL("../assets/config/gameplay.json", window.location.href);
   const config = await fetchJson(configUrl);
   if (!config) return defaultConfig;
+  const powerUps = {
+    ...defaultConfig.powerUps,
+    ...(config.powerUps || {}),
+    lineClear: {
+      ...defaultConfig.powerUps.lineClear,
+      ...(config.powerUps?.lineClear || {}),
+      badge: {
+        ...defaultConfig.powerUps.lineClear.badge,
+        ...(config.powerUps?.lineClear?.badge || {}),
+      },
+    },
+  };
   return {
     ...defaultConfig,
     ...config,
@@ -654,6 +764,7 @@ async function loadConfig() {
     board: { ...defaultConfig.board, ...(config.board || {}) },
     animations: { ...defaultConfig.animations, ...(config.animations || {}) },
     physics: { ...defaultConfig.physics, ...(config.physics || {}) },
+    powerUps,
   };
 }
 
