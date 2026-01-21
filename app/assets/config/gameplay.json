@@ -36,7 +36,7 @@
   },
   "debug": {
     "match5Test": {
-      "enabled": true,
+      "enabled": false,
       "mode": "horizontal"
     }
   },
