@@ -11,11 +11,13 @@ import {
   selectMatchPowerUpCell,
 } from "./board-logic.mjs";
 import { computeRepulsionOffsets, computeTapScale, decayBoost } from "./physics-utils.mjs";
+import { formatLootLabel, pickWeightedChoice } from "./loot-utils.mjs";
 
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
 const scoreEl = document.getElementById("score");
 const resetButton = document.getElementById("reset");
+const toastLayer = document.getElementById("toast-layer");
 
 const letters = ["A", "B", "C", "D", "E"];
 const letterValues = {
@@ -102,6 +104,22 @@ const defaultConfig = {
       },
     },
   },
+  loot: {
+    match5Bonus: {
+      enabled: true,
+      sessionCap: 3,
+      types: [
+        { id: "gem", weight: 60 },
+        { id: "card", weight: 30 },
+        { id: "relic", weight: 10 },
+      ],
+      toast: {
+        enabled: true,
+        durationMs: 1600,
+        text: "Match-5 bonus: {loot}",
+      },
+    },
+  },
 };
 
 const scoreFormatter = new Intl.NumberFormat("en-US");
@@ -130,6 +148,11 @@ const state = {
   matchEventIdCounter: 1,
   matchEventListeners: new Set(),
   lastMatchEvents: [],
+  loot: {
+    session: [],
+    match5BonusCount: 0,
+    nextLootId: 1,
+  },
 };
 
 function delay(ms) {
@@ -145,6 +168,80 @@ function emitMatchEvents(events) {
 
 function updateScore() {
   scoreEl.textContent = scoreFormatter.format(state.score);
+}
+
+function getMatch5LootConfig() {
+  return state.config.loot?.match5Bonus || {};
+}
+
+function getMatch5LootTypes(config) {
+  if (Array.isArray(config.types)) return config.types;
+  if (Array.isArray(config.weights)) return config.weights;
+  return [];
+}
+
+function showToast(message, { durationMs = 1600 } = {}) {
+  if (!toastLayer) return;
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = message;
+  toast.style.setProperty("--toast-duration", `${durationMs}ms`);
+  toastLayer.appendChild(toast);
+  const cleanup = () => {
+    toast.removeEventListener("animationend", cleanup);
+    toast.remove();
+  };
+  toast.addEventListener("animationend", cleanup);
+}
+
+function resetLootSession() {
+  state.loot.session = [];
+  state.loot.match5BonusCount = 0;
+  state.loot.nextLootId = 1;
+}
+
+function recordLootDrop({ type, event }) {
+  const entry = {
+    id: state.loot.nextLootId,
+    type,
+    source: "match5-bonus",
+    eventId: event?.id ?? null,
+    cascadeIndex: event?.cascadeIndex ?? null,
+    orientation: event?.orientation ?? null,
+    length: event?.length ?? null,
+    atMs: performance.now(),
+  };
+  state.loot.nextLootId += 1;
+  state.loot.session.push(entry);
+  return entry;
+}
+
+function handleMatch5LootBonus(events) {
+  const config = getMatch5LootConfig();
+  if (!config.enabled) return;
+  const types = getMatch5LootTypes(config);
+  if (types.length === 0) return;
+
+  const cap = Number(config.sessionCap);
+  const hasCap = Number.isFinite(cap) && cap > 0;
+
+  for (const event of events) {
+    if (event.length !== 5) continue;
+    if (hasCap && state.loot.match5BonusCount >= cap) return;
+    const choice = pickWeightedChoice(types);
+    if (!choice) return;
+    state.loot.match5BonusCount += 1;
+    const lootType = choice.id || choice.type || "loot";
+    recordLootDrop({ type: lootType, event });
+
+    const toastConfig = config.toast || {};
+    if (toastConfig.enabled) {
+      const label = formatLootLabel(lootType);
+      const template = toastConfig.text || "Match-5 bonus: {loot}";
+      const message = template.replace("{loot}", label);
+      showToast(message, { durationMs: toastConfig.durationMs });
+    }
+  }
 }
 
 function isColorClearTile(tile) {
@@ -429,6 +526,7 @@ function resetScore() {
 function resetGame() {
   initGrid();
   resetScore();
+  resetLootSession();
   state.selected = null;
   state.dragging = false;
 }
@@ -1017,6 +1115,8 @@ async function loadConfig() {
     powerUpOverrides["color-clear"] || powerUpOverrides.colorClear || {};
   const lineClearOverrides =
     powerUpOverrides["line-clear"] || powerUpOverrides.lineClear || {};
+  const lootOverrides = config.loot || {};
+  const lootMatch5Overrides = lootOverrides.match5Bonus || {};
   return {
     ...defaultConfig,
     ...config,
@@ -1055,6 +1155,18 @@ async function loadConfig() {
         },
       },
     },
+    loot: {
+      ...defaultConfig.loot,
+      ...lootOverrides,
+      match5Bonus: {
+        ...defaultConfig.loot.match5Bonus,
+        ...lootMatch5Overrides,
+        toast: {
+          ...defaultConfig.loot.match5Bonus.toast,
+          ...(lootMatch5Overrides.toast || {}),
+        },
+      },
+    },
   };
 }
 
@@ -1083,6 +1195,7 @@ async function loadBoardDefinition() {
 
 async function init() {
   state.config = await loadConfig();
+  state.matchEventListeners.add(handleMatch5LootBonus);
   document.documentElement.style.setProperty(
     "--board-max-width",
     `${state.config.board.maxWidth}px`
