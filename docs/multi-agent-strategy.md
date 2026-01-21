@@ -127,3 +127,8 @@ Before work begins, confirm:
 
 - One agent implements, another reviews (when possible).
 - PRs are merged only with explicit user approval.
+
+## Rebase Standard
+
+- Before opening a PR, rebase your feature branch onto `origin/main` to incorporate the latest shared changes.
+- Resolve any conflicts during the rebase; do not force-update `main`.

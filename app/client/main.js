@@ -1,4 +1,5 @@
 import {
+  buildLineClearSet,
   clearMatches,
   buildMatchEvents,
   collapseExistingTiles,
@@ -68,6 +69,13 @@ const defaultConfig = {
     },
   },
   powerUps: {
+    comboBonusMultiplier: 0.5,
+    "line-clear": {
+      fill: "#fef2de",
+      stroke: "#a96a1d",
+      textColor: "#2a1b09",
+      stripeColor: "#a96a1d",
+    },
     "color-clear": {
       fill: "#fff3c4",
       stroke: "#7a4f12",
@@ -76,7 +84,7 @@ const defaultConfig = {
         enabled: true,
         fill: "#7a4f12",
         stroke: "#1e1206",
-        text: "",
+        text: "XX",
         textColor: "#fff6d6",
         radiusRatio: 0.18,
         offsetRatio: 0.08,
@@ -336,6 +344,34 @@ function createTile(row, col, letter = randomLetter()) {
   };
 }
 
+function isPowerUpTile(tile) {
+  return Boolean(tile && tile.powerUp && tile.powerUp.type);
+}
+
+function isLineClearTile(tile) {
+  return tile && tile.powerUp && tile.powerUp.type === "line-clear";
+}
+
+function drawLineClearStripe(tile, dx, dy, size, style) {
+  if (!isLineClearTile(tile)) return;
+  const orientation = tile.powerUp.orientation || "horizontal";
+  const stripeColor = style?.stripeColor || "#2b2b2b";
+  const inset = size * 0.2;
+  ctx.strokeStyle = stripeColor;
+  ctx.lineWidth = Math.max(2, size * 0.08);
+  ctx.beginPath();
+  if (orientation === "vertical") {
+    const x = dx + size / 2;
+    ctx.moveTo(x, dy + inset);
+    ctx.lineTo(x, dy + size - inset);
+  } else {
+    const y = dy + size / 2;
+    ctx.moveTo(dx + inset, y);
+    ctx.lineTo(dx + size - inset, y);
+  }
+  ctx.stroke();
+}
+
 function initGrid() {
   const debugConfig = state.config.debug?.match5Test;
   if (debugConfig && debugConfig.enabled) {
@@ -425,12 +461,15 @@ function drawTile(tile, offset, scale) {
   ctx.stroke();
 
   drawColorClearBadge(tile, dx, dy, scaledSize, powerUpStyle);
+  drawLineClearStripe(tile, dx, dy, scaledSize, powerUpStyle);
 
-  ctx.fillStyle = textColor;
-  ctx.font = `${Math.floor(scaledSize * 0.5)}px Georgia`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(tile.letter, dx + scaledSize / 2, dy + scaledSize / 2);
+  if (tile.letter && !isLineClearTile(tile)) {
+    ctx.fillStyle = textColor;
+    ctx.font = `${Math.floor(scaledSize * 0.5)}px Georgia`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(tile.letter, dx + scaledSize / 2, dy + scaledSize / 2);
+  }
 }
 
 function render(timestamp) {
@@ -642,7 +681,133 @@ function getCascadeStaggerMs() {
   return min + Math.random() * (max - min);
 }
 
+async function collapseAndRefill() {
+  const { nextGrid, moves, emptySlots } = collapseExistingTiles(
+    state.grid,
+    state.gridRows,
+    state.gridCols,
+    state.mask
+  );
+  state.grid = nextGrid;
+
+  const movingTiles = [];
+  const fromRects = [];
+  const toRects = [];
+  const delays = [];
+  const durations = [];
+  moves.sort((a, b) => {
+    if (a.to.col !== b.to.col) return a.to.col - b.to.col;
+    return b.from.row - a.from.row;
+  });
+  const perColumnTime = new Map();
+  const spacingTimeMs = computeSpacingTime();
+  for (const move of moves) {
+    movingTiles.push(move.tile);
+    fromRects.push(tileRect(move.from.row, move.from.col));
+    toRects.push(tileRect(move.to.row, move.to.col));
+    const fromRect = fromRects[fromRects.length - 1];
+    const toRect = toRects[toRects.length - 1];
+    const duration = computeFallDuration(fromRect, toRect);
+    durations.push(duration);
+    const currentTime = perColumnTime.get(move.to.col) || 0;
+    delays.push(currentTime);
+    const staggerMs = getCascadeStaggerMs();
+    perColumnTime.set(move.to.col, currentTime + Math.max(spacingTimeMs, staggerMs));
+  }
+  await animateCascadeWithDurations(movingTiles, fromRects, toRects, delays, durations);
+
+  const newTiles = [];
+  const newFromRects = [];
+  const newToRects = [];
+  const newDelays = [];
+  const newDurations = [];
+  emptySlots.sort((a, b) => {
+    if (a.col !== b.col) return a.col - b.col;
+    return b.row - a.row;
+  });
+  const newPerColumnTime = new Map();
+  const newPerColumnCount = new Map();
+  const newSpacingTimeMs = spacingTimeMs;
+  for (const slot of emptySlots) {
+    const tile = createTile(slot.row, slot.col);
+    newTiles.push(tile);
+    const count = newPerColumnCount.get(slot.col) || 0;
+    newPerColumnCount.set(slot.col, count + 1);
+    newFromRects.push(tileRect(-1 - count, slot.col));
+    newToRects.push(tileRect(slot.row, slot.col));
+    const fromRect = newFromRects[newFromRects.length - 1];
+    const toRect = newToRects[newFromRects.length - 1];
+    const duration = computeFallDuration(fromRect, toRect);
+    newDurations.push(duration);
+    const currentTime = newPerColumnTime.get(slot.col) || 0;
+    newDelays.push(currentTime);
+    const staggerMs = getCascadeStaggerMs();
+    newPerColumnTime.set(
+      slot.col,
+      currentTime + Math.max(newSpacingTimeMs, staggerMs)
+    );
+    state.grid[slot.row][slot.col] = tile;
+  }
+  await animateCascadeWithDurations(
+    newTiles,
+    newFromRects,
+    newToRects,
+    newDelays,
+    newDurations
+  );
+}
+
 async function resolveMatchesAnimated({ swapOrigin = null, swapDestination = null } = {}) {
+  let matched = findMatches(state.grid, state.gridRows, state.gridCols);
+  let didMatch = false;
+  let cascadeIndex = 0;
+
+  while (matched.size > 0) {
+    didMatch = true;
+    const { events, nextEventId } = buildMatchEvents(
+      state.grid,
+      state.gridRows,
+      state.gridCols,
+      {
+        swapOrigin,
+        cascadeIndex,
+        eventIdStart: state.matchEventIdCounter,
+      }
+    );
+    state.matchEventIdCounter = nextEventId;
+    emitMatchEvents(events);
+
+    const runs = findMatchRuns(state.grid, state.gridRows, state.gridCols);
+    const clearSet = new Set(matched);
+    const reservedPowerUpCells = new Set();
+    for (const run of runs) {
+      if (run.length !== 5) continue;
+      const spawnCell = selectMatchPowerUpCell(run.cells, {
+        swapDestination: cascadeIndex === 0 ? swapDestination : null,
+        reserved: reservedPowerUpCells,
+      });
+      if (!spawnCell) continue;
+      const key = `${spawnCell.row},${spawnCell.col}`;
+      reservedPowerUpCells.add(key);
+      clearSet.delete(key);
+      const tile = state.grid[spawnCell.row][spawnCell.col];
+      if (tile) {
+        tile.powerUp = { type: "color-clear" };
+      }
+    }
+
+    const points = scoreMatches(matched);
+    state.score += points;
+    updateScore();
+    clearMatches(state.grid, clearSet);
+    await delay(state.config.animations.matchResolveMs);
+    await collapseAndRefill();
+    matched = findMatches(state.grid, state.gridRows, state.gridCols);
+    cascadeIndex += 1;
+  }
+
+  return didMatch;
+}
   let matched = findMatches(state.grid, state.gridRows, state.gridCols);
   let didMatch = false;
   let cascadeIndex = 0;
@@ -762,12 +927,46 @@ async function resolveMatchesAnimated({ swapOrigin = null, swapDestination = nul
       newDelays,
       newDurations
     );
+    await collapseAndRefill();
     matched = findMatches(state.grid, state.gridRows, state.gridCols);
     cascadeIndex += 1;
   }
 
   return didMatch;
 }
+
+function mergeKeySet(target, source) {
+  if (!source) return;
+  for (const key of source) {
+    target.add(key);
+  }
+}
+
+async function activateLineClearSwap(lineClearTiles, { hasCombo = false } = {}) {
+  if (!lineClearTiles || lineClearTiles.length === 0) return false;
+  const clearSet = new Set();
+  for (const tile of lineClearTiles) {
+    if (!tile || !tile.powerUp) continue;
+    const keys = buildLineClearSet(state.grid, state.gridRows, state.gridCols, {
+      row: tile.row,
+      col: tile.col,
+      orientation: tile.powerUp.orientation,
+    });
+    mergeKeySet(clearSet, keys);
+  }
+  if (clearSet.size === 0) return false;
+  const clearPoints = scoreMatches(clearSet);
+  const comboMultiplier = Number(state.config.powerUps?.comboBonusMultiplier) || 0;
+  const comboBonus = hasCombo ? Math.round(clearPoints * comboMultiplier) : 0;
+  state.score += clearPoints + comboBonus;
+  updateScore();
+  clearMatches(state.grid, clearSet);
+  await delay(state.config.animations.matchResolveMs);
+  await collapseAndRefill();
+  await resolveMatchesAnimated();
+  return true;
+}
+
 function isAdjacent(a, b) {
   const dr = Math.abs(a.row - b.row);
   const dc = Math.abs(a.col - b.col);
@@ -785,10 +984,14 @@ async function handleSwap(targetTile) {
   const swapDestination = { row: second.row, col: second.col };
   state.selected = null;
   state.inputLocked = true;
+  const lineClearTiles = [first, second].filter(isLineClearTile);
+  const hasCombo = isPowerUpTile(first) && isPowerUpTile(second) && lineClearTiles.length > 0;
 
   try {
     await animateSwap(first, second);
     swapTiles(first, second);
+    const activated = await activateLineClearSwap(lineClearTiles, { hasCombo });
+    if (activated) return;
     const matched = await resolveMatchesAnimated({ swapOrigin, swapDestination });
     if (!matched) {
       await animateSwap(first, second);
@@ -887,6 +1090,8 @@ async function loadConfig() {
   const powerUpOverrides = config.powerUps || {};
   const colorClearOverrides =
     powerUpOverrides["color-clear"] || powerUpOverrides.colorClear || {};
+  const lineClearOverrides =
+    powerUpOverrides["line-clear"] || powerUpOverrides.lineClear || {};
   return {
     ...defaultConfig,
     ...config,
@@ -908,6 +1113,10 @@ async function loadConfig() {
     powerUps: {
       ...defaultConfig.powerUps,
       ...powerUpOverrides,
+      "line-clear": {
+        ...defaultConfig.powerUps["line-clear"],
+        ...lineClearOverrides,
+      },
       "color-clear": {
         ...defaultConfig.powerUps["color-clear"],
         ...colorClearOverrides,

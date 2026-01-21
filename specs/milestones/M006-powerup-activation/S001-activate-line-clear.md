@@ -16,6 +16,9 @@ Enable activation of line clear power-ups created in earlier slices.
 ## Functional Requirements
 - Power-up triggers on swap
 - Clear row or column based on power-up orientation
+- Swap involving line-clear is valid even without a normal match
+- If line-clear swaps with another power-up, award a small bonus reward
+- Line-clear tiles are letterless (variant-1) and can swap with any tile to activate
 
 ## Non-Functional Requirements
 - Activation integrates with cascades
@@ -28,6 +31,9 @@ Enable activation of line clear power-ups created in earlier slices.
 
 ## Decisions
 - Activation only via swap (no tap)
+- Allow activation on any swap involving line-clear, even if no match forms
+- Power-up + power-up swap triggers line-clear and a bonus reward
+- Variant-1 behavior (letterless, wildcard swap) ships now; variant-2 considered for M005 polish
 
 ## Definition of Done (DoD)
 - Line clear power-ups activate and clear tiles
