@@ -75,6 +75,16 @@ const defaultConfig = {
       stroke: "#a96a1d",
       textColor: "#2a1b09",
       stripeColor: "#a96a1d",
+      markerText: "L",
+      badge: {
+        enabled: true,
+        fill: "#a96a1d",
+        stroke: "#2a1b09",
+        textColor: "#fff8e6",
+        radiusRatio: 0.18,
+        offsetRatio: 0.08,
+        fontScale: 0.85,
+      },
     },
     "color-clear": {
       fill: "#fff3c4",
@@ -170,6 +180,30 @@ function drawColorClearBadge(tile, dx, dy, size, style) {
     ctx.textBaseline = "middle";
     ctx.fillText(badge.text, badgeX, badgeY);
   }
+}
+
+function drawLineClearBadge(tile, dx, dy, size, style) {
+  if (!isLineClearTile(tile)) return;
+  const badge = style?.badge;
+  if (!badge || badge.enabled === false) return;
+  const radius = size * (badge.radiusRatio ?? 0.18);
+  const offsetRatio = badge.offsetRatio ?? 0.08;
+  const badgeX = dx + size - radius - size * offsetRatio;
+  const badgeY = dy + radius + size * offsetRatio;
+  ctx.fillStyle = badge.fill || "#2b2b2b";
+  ctx.strokeStyle = badge.stroke || "#1f1f1f";
+  ctx.lineWidth = Math.max(1, size * 0.04);
+  ctx.beginPath();
+  ctx.arc(badgeX, badgeY, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  const markerText = style?.markerText || "L";
+  ctx.fillStyle = badge.textColor || "#fff";
+  ctx.font = `${Math.floor(radius * (badge.fontScale ?? 0.85))}px Georgia`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(markerText, badgeX, badgeY + 1);
 }
 
 function resizeCanvas() {
@@ -462,8 +496,9 @@ function drawTile(tile, offset, scale) {
 
   drawColorClearBadge(tile, dx, dy, scaledSize, powerUpStyle);
   drawLineClearStripe(tile, dx, dy, scaledSize, powerUpStyle);
+  drawLineClearBadge(tile, dx, dy, scaledSize, powerUpStyle);
 
-  if (tile.letter && !isLineClearTile(tile)) {
+  if (tile.letter) {
     ctx.fillStyle = textColor;
     ctx.font = `${Math.floor(scaledSize * 0.5)}px Georgia`;
     ctx.textAlign = "center";
@@ -780,10 +815,11 @@ async function resolveMatchesAnimated({ swapOrigin = null, swapDestination = nul
     const runs = findMatchRuns(state.grid, state.gridRows, state.gridCols);
     const clearSet = new Set(matched);
     const reservedPowerUpCells = new Set();
+    const spawnSwapDestination = cascadeIndex === 0 ? swapDestination : null;
     for (const run of runs) {
       if (run.length !== 5) continue;
       const spawnCell = selectMatchPowerUpCell(run.cells, {
-        swapDestination: cascadeIndex === 0 ? swapDestination : null,
+        swapDestination: spawnSwapDestination,
         reserved: reservedPowerUpCells,
       });
       if (!spawnCell) continue;
@@ -795,45 +831,10 @@ async function resolveMatchesAnimated({ swapOrigin = null, swapDestination = nul
         tile.powerUp = { type: "color-clear" };
       }
     }
-
-    const points = scoreMatches(matched);
-    state.score += points;
-    updateScore();
-    clearMatches(state.grid, clearSet);
-    await delay(state.config.animations.matchResolveMs);
-    await collapseAndRefill();
-    matched = findMatches(state.grid, state.gridRows, state.gridCols);
-    cascadeIndex += 1;
-  }
-
-  return didMatch;
-}
-  let matched = findMatches(state.grid, state.gridRows, state.gridCols);
-  let didMatch = false;
-  let cascadeIndex = 0;
-
-  while (matched.size > 0) {
-    didMatch = true;
-    const { events, nextEventId } = buildMatchEvents(
-      state.grid,
-      state.gridRows,
-      state.gridCols,
-      {
-        swapOrigin,
-        cascadeIndex,
-        eventIdStart: state.matchEventIdCounter,
-      }
-    );
-    state.matchEventIdCounter = nextEventId;
-    emitMatchEvents(events);
-
-    const runs = findMatchRuns(state.grid, state.gridRows, state.gridCols);
-    const clearSet = new Set(matched);
-    const reservedPowerUpCells = new Set();
     for (const run of runs) {
-      if (run.length !== 5) continue;
+      if (run.length !== 4) continue;
       const spawnCell = selectMatchPowerUpCell(run.cells, {
-        swapDestination: cascadeIndex === 0 ? swapDestination : null,
+        swapDestination: spawnSwapDestination,
         reserved: reservedPowerUpCells,
       });
       if (!spawnCell) continue;
@@ -842,7 +843,7 @@ async function resolveMatchesAnimated({ swapOrigin = null, swapDestination = nul
       clearSet.delete(key);
       const tile = state.grid[spawnCell.row][spawnCell.col];
       if (tile) {
-        tile.powerUp = { type: "color-clear" };
+        tile.powerUp = { type: "line-clear", orientation: run.orientation };
       }
     }
 
@@ -851,82 +852,6 @@ async function resolveMatchesAnimated({ swapOrigin = null, swapDestination = nul
     updateScore();
     clearMatches(state.grid, clearSet);
     await delay(state.config.animations.matchResolveMs);
-    const { nextGrid, moves, emptySlots } = collapseExistingTiles(
-      state.grid,
-      state.gridRows,
-      state.gridCols,
-      state.mask
-    );
-    state.grid = nextGrid;
-
-    const movingTiles = [];
-    const fromRects = [];
-    const toRects = [];
-    const delays = [];
-    const durations = [];
-    moves.sort((a, b) => {
-      if (a.to.col !== b.to.col) return a.to.col - b.to.col;
-      return b.from.row - a.from.row;
-    });
-    const perColumnTime = new Map();
-    const spacingTimeMs = computeSpacingTime();
-    for (const move of moves) {
-      movingTiles.push(move.tile);
-      fromRects.push(tileRect(move.from.row, move.from.col));
-      toRects.push(tileRect(move.to.row, move.to.col));
-      const fromRect = fromRects[fromRects.length - 1];
-      const toRect = toRects[toRects.length - 1];
-      const duration = computeFallDuration(fromRect, toRect);
-      durations.push(duration);
-      const currentTime = perColumnTime.get(move.to.col) || 0;
-      delays.push(currentTime);
-      const staggerMs = getCascadeStaggerMs();
-      perColumnTime.set(
-        move.to.col,
-        currentTime + Math.max(spacingTimeMs, staggerMs)
-      );
-    }
-    await animateCascadeWithDurations(movingTiles, fromRects, toRects, delays, durations);
-
-    const newTiles = [];
-    const newFromRects = [];
-    const newToRects = [];
-    const newDelays = [];
-    const newDurations = [];
-    emptySlots.sort((a, b) => {
-      if (a.col !== b.col) return a.col - b.col;
-      return b.row - a.row;
-    });
-    const newPerColumnTime = new Map();
-    const newPerColumnCount = new Map();
-    const newSpacingTimeMs = spacingTimeMs;
-    for (const slot of emptySlots) {
-      const tile = createTile(slot.row, slot.col);
-      newTiles.push(tile);
-      const count = newPerColumnCount.get(slot.col) || 0;
-      newPerColumnCount.set(slot.col, count + 1);
-      newFromRects.push(tileRect(-1 - count, slot.col));
-      newToRects.push(tileRect(slot.row, slot.col));
-      const fromRect = newFromRects[newFromRects.length - 1];
-      const toRect = newToRects[newFromRects.length - 1];
-      const duration = computeFallDuration(fromRect, toRect);
-      newDurations.push(duration);
-      const currentTime = newPerColumnTime.get(slot.col) || 0;
-      newDelays.push(currentTime);
-      const staggerMs = getCascadeStaggerMs();
-      newPerColumnTime.set(
-        slot.col,
-        currentTime + Math.max(newSpacingTimeMs, staggerMs)
-      );
-      state.grid[slot.row][slot.col] = tile;
-    }
-    await animateCascadeWithDurations(
-      newTiles,
-      newFromRects,
-      newToRects,
-      newDelays,
-      newDurations
-    );
     await collapseAndRefill();
     matched = findMatches(state.grid, state.gridRows, state.gridCols);
     cascadeIndex += 1;
@@ -1116,6 +1041,10 @@ async function loadConfig() {
       "line-clear": {
         ...defaultConfig.powerUps["line-clear"],
         ...lineClearOverrides,
+        badge: {
+          ...defaultConfig.powerUps["line-clear"].badge,
+          ...(lineClearOverrides.badge || {}),
+        },
       },
       "color-clear": {
         ...defaultConfig.powerUps["color-clear"],

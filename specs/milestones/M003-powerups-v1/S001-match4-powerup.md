@@ -41,7 +41,7 @@ Add a basic power-up that is created on a 4-in-a-row match.
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

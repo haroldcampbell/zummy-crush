@@ -41,6 +41,22 @@
     }
   },
   "powerUps": {
+    "line-clear": {
+      "fill": "#fff4d4",
+      "stroke": "#8f5a12",
+      "textColor": "#2a1b09",
+      "stripeColor": "#8f5a12",
+      "markerText": "L",
+      "badge": {
+        "enabled": true,
+        "fill": "#8f5a12",
+        "stroke": "#2a1b09",
+        "textColor": "#fff8e6",
+        "radiusRatio": 0.18,
+        "offsetRatio": 0.08,
+        "fontScale": 0.85
+      }
+    },
     "color-clear": {
       "fill": "#fff3c4",
       "stroke": "#7a4f12",
