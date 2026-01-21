@@ -127,11 +127,6 @@ function testBuildGridCreatesNullsForVoids() {
   assert.ok(grid[1][1], "tile exists where mask is 1");
 }
 
- 004d204 (feat(M004-S001): add match-5 color-clear creation)
-  );
-}
-
-
 function testBuildMatchEvents() {
   const rows = 3;
   const cols = 3;
