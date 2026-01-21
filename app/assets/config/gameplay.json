@@ -34,6 +34,12 @@
     },
     "cascadeSpacingGapMultiplier": 2
   },
+  "debug": {
+    "match5Test": {
+      "enabled": false,
+      "mode": "horizontal"
+    }
+  },
   "powerUps": {
     "colorClear": {
       "fill": "#fff3c4",

@@ -61,6 +61,12 @@ const defaultConfig = {
     },
     cascadeSpacingGapMultiplier: 2,
   },
+  debug: {
+    match5Test: {
+      enabled: false,
+      mode: "horizontal",
+    },
+  },
   powerUps: {
     colorClear: {
       fill: "#fff3c4",
@@ -172,6 +178,76 @@ function randomLetter() {
   return letters[Math.floor(Math.random() * letters.length)];
 }
 
+function findMaskRun(mask, rows, cols, length, orientation) {
+  if (orientation === "horizontal") {
+    for (let row = 0; row < rows; row += 1) {
+      let run = [];
+      for (let col = 0; col < cols; col += 1) {
+        if (mask[row][col] === 1) {
+          run.push({ row, col });
+        } else {
+          run = [];
+        }
+        if (run.length >= length) return run.slice(0, length);
+      }
+    }
+  } else {
+    for (let col = 0; col < cols; col += 1) {
+      let run = [];
+      for (let row = 0; row < rows; row += 1) {
+        if (mask[row][col] === 1) {
+          run.push({ row, col });
+        } else {
+          run = [];
+        }
+        if (run.length >= length) return run.slice(0, length);
+      }
+    }
+  }
+  return null;
+}
+
+function buildMatch5TestGrid(mode) {
+  const grid = [];
+  for (let row = 0; row < state.gridRows; row += 1) {
+    const rowTiles = [];
+    for (let col = 0; col < state.gridCols; col += 1) {
+      if (state.mask[row][col] !== 1) {
+        rowTiles.push(null);
+        continue;
+      }
+      const letter = letters[(row + col) % letters.length];
+      rowTiles.push(createTile(row, col, letter));
+    }
+    grid.push(rowTiles);
+  }
+
+  const wantsHorizontal = mode === "horizontal" || mode === "both";
+  const wantsVertical = mode === "vertical" || mode === "both";
+
+  if (wantsHorizontal) {
+    const run = findMaskRun(state.mask, state.gridRows, state.gridCols, 5, "horizontal");
+    if (run) {
+      for (const cell of run) {
+        const tile = grid[cell.row][cell.col];
+        if (tile) tile.letter = letters[0];
+      }
+    }
+  }
+
+  if (wantsVertical) {
+    const run = findMaskRun(state.mask, state.gridRows, state.gridCols, 5, "vertical");
+    if (run) {
+      for (const cell of run) {
+        const tile = grid[cell.row][cell.col];
+        if (tile) tile.letter = letters[1] || letters[0];
+      }
+    }
+  }
+
+  return grid;
+}
+
 function createTile(row, col, letter = randomLetter()) {
   return {
     row,
@@ -184,13 +260,18 @@ function createTile(row, col, letter = randomLetter()) {
 }
 
 function initGrid() {
-  state.grid = fillGridNoMatches(
-    state.gridRows,
-    state.gridCols,
-    state.mask,
-    letters,
-    createTile
-  );
+  const debugConfig = state.config.debug?.match5Test;
+  if (debugConfig && debugConfig.enabled) {
+    state.grid = buildMatch5TestGrid(debugConfig.mode || "horizontal");
+  } else {
+    state.grid = fillGridNoMatches(
+      state.gridRows,
+      state.gridCols,
+      state.mask,
+      letters,
+      createTile
+    );
+  }
 }
 
 function resetScore() {
@@ -738,6 +819,14 @@ async function loadConfig() {
     board: { ...defaultConfig.board, ...(config.board || {}) },
     animations: { ...defaultConfig.animations, ...(config.animations || {}) },
     physics: { ...defaultConfig.physics, ...(config.physics || {}) },
+    debug: {
+      ...defaultConfig.debug,
+      ...(config.debug || {}),
+      match5Test: {
+        ...defaultConfig.debug.match5Test,
+        ...((config.debug && config.debug.match5Test) || {}),
+      },
+    },
     powerUps: {
       ...defaultConfig.powerUps,
       ...powerUpOverrides,
