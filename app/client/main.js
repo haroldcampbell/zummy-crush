@@ -178,33 +178,76 @@ function randomLetter() {
   return letters[Math.floor(Math.random() * letters.length)];
 }
 
-function findMaskRun(mask, rows, cols, length, orientation) {
+function findCenteredMaskRun(mask, rows, cols, length, orientation) {
+  const centerRow = (rows - 1) / 2;
+  const centerCol = (cols - 1) / 2;
+  let best = null;
+  let bestDist = Number.POSITIVE_INFINITY;
+
+  const considerWindow = (startRow, startCol) => {
+    const midOffset = (length - 1) / 2;
+    const runCenterRow = orientation === "horizontal" ? startRow : startRow + midOffset;
+    const runCenterCol = orientation === "horizontal" ? startCol + midOffset : startCol;
+    const dr = runCenterRow - centerRow;
+    const dc = runCenterCol - centerCol;
+    const dist = dr * dr + dc * dc;
+    if (dist < bestDist) {
+      bestDist = dist;
+      const cells = [];
+      for (let i = 0; i < length; i += 1) {
+        const row = orientation === "horizontal" ? startRow : startRow + i;
+        const col = orientation === "horizontal" ? startCol + i : startCol;
+        cells.push({ row, col });
+      }
+      best = cells;
+    }
+  };
+
   if (orientation === "horizontal") {
     for (let row = 0; row < rows; row += 1) {
-      let run = [];
-      for (let col = 0; col < cols; col += 1) {
-        if (mask[row][col] === 1) {
-          run.push({ row, col });
-        } else {
-          run = [];
+      let runStart = null;
+      let runLength = 0;
+      for (let col = 0; col <= cols; col += 1) {
+        const isFilled = col < cols && mask[row][col] === 1;
+        if (isFilled) {
+          if (runStart === null) runStart = col;
+          runLength += 1;
         }
-        if (run.length >= length) return run.slice(0, length);
+        if (!isFilled || col === cols) {
+          if (runStart !== null && runLength >= length) {
+            for (let start = runStart; start <= runStart + runLength - length; start += 1) {
+              considerWindow(row, start);
+            }
+          }
+          runStart = null;
+          runLength = 0;
+        }
       }
     }
   } else {
     for (let col = 0; col < cols; col += 1) {
-      let run = [];
-      for (let row = 0; row < rows; row += 1) {
-        if (mask[row][col] === 1) {
-          run.push({ row, col });
-        } else {
-          run = [];
+      let runStart = null;
+      let runLength = 0;
+      for (let row = 0; row <= rows; row += 1) {
+        const isFilled = row < rows && mask[row][col] === 1;
+        if (isFilled) {
+          if (runStart === null) runStart = row;
+          runLength += 1;
         }
-        if (run.length >= length) return run.slice(0, length);
+        if (!isFilled || row === rows) {
+          if (runStart !== null && runLength >= length) {
+            for (let start = runStart; start <= runStart + runLength - length; start += 1) {
+              considerWindow(start, col);
+            }
+          }
+          runStart = null;
+          runLength = 0;
+        }
       }
     }
   }
-  return null;
+
+  return best;
 }
 
 function buildMatch5TestGrid(mode) {
@@ -225,23 +268,57 @@ function buildMatch5TestGrid(mode) {
   const wantsHorizontal = mode === "horizontal" || mode === "both";
   const wantsVertical = mode === "vertical" || mode === "both";
 
+  const ensureDifferent = (row, col, disallowLetter) => {
+    if (row < 0 || col < 0 || row >= state.gridRows || col >= state.gridCols) return;
+    if (state.mask[row][col] !== 1) return;
+    const tile = grid[row][col];
+    if (!tile) return;
+    if (tile.letter !== disallowLetter) return;
+    const options = letters.filter((letter) => letter !== disallowLetter);
+    tile.letter = options.length ? options[0] : tile.letter;
+  };
+
+  const horizontalLetter = letters[0];
+  const verticalLetter =
+    mode === "both" ? horizontalLetter : letters[1] || letters[0];
+
   if (wantsHorizontal) {
-    const run = findMaskRun(state.mask, state.gridRows, state.gridCols, 5, "horizontal");
+    const run = findCenteredMaskRun(
+      state.mask,
+      state.gridRows,
+      state.gridCols,
+      5,
+      "horizontal"
+    );
     if (run) {
       for (const cell of run) {
         const tile = grid[cell.row][cell.col];
-        if (tile) tile.letter = letters[0];
+        if (tile) tile.letter = horizontalLetter;
       }
+      const left = run[0];
+      const right = run[run.length - 1];
+      ensureDifferent(left.row, left.col - 1, horizontalLetter);
+      ensureDifferent(right.row, right.col + 1, horizontalLetter);
     }
   }
 
   if (wantsVertical) {
-    const run = findMaskRun(state.mask, state.gridRows, state.gridCols, 5, "vertical");
+    const run = findCenteredMaskRun(
+      state.mask,
+      state.gridRows,
+      state.gridCols,
+      5,
+      "vertical"
+    );
     if (run) {
       for (const cell of run) {
         const tile = grid[cell.row][cell.col];
-        if (tile) tile.letter = letters[1] || letters[0];
+        if (tile) tile.letter = verticalLetter;
       }
+      const top = run[0];
+      const bottom = run[run.length - 1];
+      ensureDifferent(top.row - 1, top.col, verticalLetter);
+      ensureDifferent(bottom.row + 1, bottom.col, verticalLetter);
     }
   }
 
