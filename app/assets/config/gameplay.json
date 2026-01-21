@@ -72,5 +72,21 @@
         "fontScale": 0.9
       }
     }
+  },
+  "loot": {
+    "match5Bonus": {
+      "enabled": true,
+      "sessionCap": 3,
+      "types": [
+        { "id": "gem", "weight": 60 },
+        { "id": "card", "weight": 30 },
+        { "id": "relic", "weight": 10 }
+      ],
+      "toast": {
+        "enabled": true,
+        "durationMs": 1600,
+        "text": "Match-5 bonus: {loot}"
+      }
+    }
   }
 }

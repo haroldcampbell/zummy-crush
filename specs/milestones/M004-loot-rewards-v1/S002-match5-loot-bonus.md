@@ -33,6 +33,9 @@ Add a loot bonus triggered by match-5 events without depending on power-up activ
 - Bonus applies to match-5 events only
 - Bonus can be disabled via config
 
+## Notes
+- M005 follow-up: add D&D-flavored loot subtypes and richer toast treatment.
+
 ## Definition of Done (DoD)
 - Match-5 bonus loot can be triggered and recorded
 
@@ -41,7 +44,7 @@ Add a loot bonus triggered by match-5 events without depending on power-up activ
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated
