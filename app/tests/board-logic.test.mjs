@@ -6,8 +6,10 @@ import {
   collapseColumns,
   createMask,
   fillGridNoMatches,
+  findMatchRuns,
   findMatches,
   normalizeMask,
+  selectMatchPowerUpCell,
 } from "../client/board-logic.mjs";
 
 function makeTile(row, col, letter) {
@@ -159,6 +161,64 @@ function testBuildMatchEvents() {
   );
 }
 
+function testFindMatchRuns() {
+  const rows = 1;
+  const cols = 6;
+  const grid = [[
+    makeTile(0, 0, "A"),
+    makeTile(0, 1, "A"),
+    makeTile(0, 2, "A"),
+    makeTile(0, 3, "A"),
+    makeTile(0, 4, "A"),
+    makeTile(0, 5, "B"),
+  ]];
+  const runs = findMatchRuns(grid, rows, cols);
+  assert.equal(runs.length, 1, "findMatchRuns returns a single run");
+  assert.equal(runs[0].length, 5, "run length matches");
+  assert.equal(runs[0].orientation, "horizontal", "orientation matches");
+}
+
+function testFindMatchRunsVertical() {
+  const rows = 6;
+  const cols = 1;
+  const grid = [
+    [makeTile(0, 0, "C")],
+    [makeTile(1, 0, "C")],
+    [makeTile(2, 0, "C")],
+    [makeTile(3, 0, "C")],
+    [makeTile(4, 0, "C")],
+    [makeTile(5, 0, "D")],
+  ];
+  const runs = findMatchRuns(grid, rows, cols);
+  assert.equal(runs.length, 1, "findMatchRuns returns a single vertical run");
+  assert.equal(runs[0].length, 5, "vertical run length matches");
+  assert.equal(runs[0].orientation, "vertical", "orientation matches");
+}
+
+function testSelectMatchPowerUpCell() {
+  const cells = [
+    { row: 0, col: 0 },
+    { row: 0, col: 1 },
+    { row: 0, col: 2 },
+    { row: 0, col: 3 },
+    { row: 0, col: 4 },
+  ];
+  const swapDestination = { row: 0, col: 4 };
+  const chosenSwap = selectMatchPowerUpCell(cells, { swapDestination });
+  assert.deepEqual(chosenSwap, swapDestination, "swap destination wins when in match");
+
+  const chosenCenter = selectMatchPowerUpCell(cells);
+  assert.deepEqual(chosenCenter, { row: 0, col: 2 }, "center-most chosen by default");
+
+  const reserved = new Set(["0,2"]);
+  const chosenRight = selectMatchPowerUpCell(cells, { reserved });
+  assert.deepEqual(
+    chosenRight,
+    { row: 0, col: 3 },
+    "reserved center falls back to right before left"
+  );
+}
+
 function runTests() {
   testNormalizeMask();
   testFindMatchesSkipsVoids();
@@ -167,6 +227,9 @@ function runTests() {
   testCollapseExistingTiles();
   testBuildGridCreatesNullsForVoids();
   testBuildMatchEvents();
+  testFindMatchRuns();
+  testFindMatchRunsVertical();
+  testSelectMatchPowerUpCell();
   console.log("All board logic tests passed.");
 }
 

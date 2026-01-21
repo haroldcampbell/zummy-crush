@@ -4,8 +4,10 @@ import {
   collapseExistingTiles,
   createMask,
   fillGridNoMatches,
+  findMatchRuns,
   findMatches,
   normalizeMask,
+  selectMatchPowerUpCell,
 } from "./board-logic.mjs";
 import { computeRepulsionOffsets, computeTapScale, decayBoost } from "./physics-utils.mjs";
 
@@ -59,6 +61,29 @@ const defaultConfig = {
     },
     cascadeSpacingGapMultiplier: 2,
   },
+  debug: {
+    match5Test: {
+      enabled: false,
+      mode: "horizontal",
+    },
+  },
+  powerUps: {
+    "color-clear": {
+      fill: "#fff3c4",
+      stroke: "#7a4f12",
+      textColor: "#2a1b09",
+      badge: {
+        enabled: true,
+        fill: "#7a4f12",
+        stroke: "#1e1206",
+        text: "",
+        textColor: "#fff6d6",
+        radiusRatio: 0.18,
+        offsetRatio: 0.08,
+        fontScale: 0.9,
+      },
+    },
+  },
 };
 
 const scoreFormatter = new Intl.NumberFormat("en-US");
@@ -104,6 +129,41 @@ function updateScore() {
   scoreEl.textContent = scoreFormatter.format(state.score);
 }
 
+function isColorClearTile(tile) {
+  return tile && tile.powerUp && tile.powerUp.type === "color-clear";
+}
+
+function getPowerUpStyle(tile) {
+  if (!tile || !tile.powerUp) return null;
+  const palette = state.config.powerUps || {};
+  return palette[tile.powerUp.type] || null;
+}
+
+function drawColorClearBadge(tile, dx, dy, size, style) {
+  if (!isColorClearTile(tile)) return;
+  const badge = style?.badge;
+  if (!badge || !badge.enabled) return;
+  const radius = size * (badge.radiusRatio ?? 0.18);
+  const offsetRatio = badge.offsetRatio ?? 0.08;
+  const badgeX = dx + size - radius - size * offsetRatio;
+  const badgeY = dy + radius + size * offsetRatio;
+  ctx.fillStyle = badge.fill || "#2b2b2b";
+  ctx.strokeStyle = badge.stroke || "#1f1f1f";
+  ctx.lineWidth = Math.max(1, size * 0.04);
+  ctx.beginPath();
+  ctx.arc(badgeX, badgeY, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  if (badge.text) {
+    ctx.fillStyle = badge.textColor || "#fff";
+    ctx.font = `${Math.floor(radius * (badge.fontScale ?? 0.9))}px Georgia`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(badge.text, badgeX, badgeY);
+  }
+}
+
 function resizeCanvas() {
   const width = canvas.clientWidth;
   canvas.width = width * window.devicePixelRatio;
@@ -118,24 +178,177 @@ function randomLetter() {
   return letters[Math.floor(Math.random() * letters.length)];
 }
 
+function findCenteredMaskRun(mask, rows, cols, length, orientation) {
+  const centerRow = (rows - 1) / 2;
+  const centerCol = (cols - 1) / 2;
+  let best = null;
+  let bestDist = Number.POSITIVE_INFINITY;
+
+  const considerWindow = (startRow, startCol) => {
+    const midOffset = (length - 1) / 2;
+    const runCenterRow = orientation === "horizontal" ? startRow : startRow + midOffset;
+    const runCenterCol = orientation === "horizontal" ? startCol + midOffset : startCol;
+    const dr = runCenterRow - centerRow;
+    const dc = runCenterCol - centerCol;
+    const dist = dr * dr + dc * dc;
+    if (dist < bestDist) {
+      bestDist = dist;
+      const cells = [];
+      for (let i = 0; i < length; i += 1) {
+        const row = orientation === "horizontal" ? startRow : startRow + i;
+        const col = orientation === "horizontal" ? startCol + i : startCol;
+        cells.push({ row, col });
+      }
+      best = cells;
+    }
+  };
+
+  if (orientation === "horizontal") {
+    for (let row = 0; row < rows; row += 1) {
+      let runStart = null;
+      let runLength = 0;
+      for (let col = 0; col <= cols; col += 1) {
+        const isFilled = col < cols && mask[row][col] === 1;
+        if (isFilled) {
+          if (runStart === null) runStart = col;
+          runLength += 1;
+        }
+        if (!isFilled || col === cols) {
+          if (runStart !== null && runLength >= length) {
+            for (let start = runStart; start <= runStart + runLength - length; start += 1) {
+              considerWindow(row, start);
+            }
+          }
+          runStart = null;
+          runLength = 0;
+        }
+      }
+    }
+  } else {
+    for (let col = 0; col < cols; col += 1) {
+      let runStart = null;
+      let runLength = 0;
+      for (let row = 0; row <= rows; row += 1) {
+        const isFilled = row < rows && mask[row][col] === 1;
+        if (isFilled) {
+          if (runStart === null) runStart = row;
+          runLength += 1;
+        }
+        if (!isFilled || row === rows) {
+          if (runStart !== null && runLength >= length) {
+            for (let start = runStart; start <= runStart + runLength - length; start += 1) {
+              considerWindow(start, col);
+            }
+          }
+          runStart = null;
+          runLength = 0;
+        }
+      }
+    }
+  }
+
+  return best;
+}
+
+function buildMatch5TestGrid(mode) {
+  const grid = [];
+  for (let row = 0; row < state.gridRows; row += 1) {
+    const rowTiles = [];
+    for (let col = 0; col < state.gridCols; col += 1) {
+      if (state.mask[row][col] !== 1) {
+        rowTiles.push(null);
+        continue;
+      }
+      const letter = letters[(row + col) % letters.length];
+      rowTiles.push(createTile(row, col, letter));
+    }
+    grid.push(rowTiles);
+  }
+
+  const wantsHorizontal = mode === "horizontal" || mode === "both";
+  const wantsVertical = mode === "vertical" || mode === "both";
+
+  const ensureDifferent = (row, col, disallowLetter) => {
+    if (row < 0 || col < 0 || row >= state.gridRows || col >= state.gridCols) return;
+    if (state.mask[row][col] !== 1) return;
+    const tile = grid[row][col];
+    if (!tile) return;
+    if (tile.letter !== disallowLetter) return;
+    const options = letters.filter((letter) => letter !== disallowLetter);
+    tile.letter = options.length ? options[0] : tile.letter;
+  };
+
+  const horizontalLetter = letters[0];
+  const verticalLetter =
+    mode === "both" ? horizontalLetter : letters[1] || letters[0];
+
+  if (wantsHorizontal) {
+    const run = findCenteredMaskRun(
+      state.mask,
+      state.gridRows,
+      state.gridCols,
+      5,
+      "horizontal"
+    );
+    if (run) {
+      for (const cell of run) {
+        const tile = grid[cell.row][cell.col];
+        if (tile) tile.letter = horizontalLetter;
+      }
+      const left = run[0];
+      const right = run[run.length - 1];
+      ensureDifferent(left.row, left.col - 1, horizontalLetter);
+      ensureDifferent(right.row, right.col + 1, horizontalLetter);
+    }
+  }
+
+  if (wantsVertical) {
+    const run = findCenteredMaskRun(
+      state.mask,
+      state.gridRows,
+      state.gridCols,
+      5,
+      "vertical"
+    );
+    if (run) {
+      for (const cell of run) {
+        const tile = grid[cell.row][cell.col];
+        if (tile) tile.letter = verticalLetter;
+      }
+      const top = run[0];
+      const bottom = run[run.length - 1];
+      ensureDifferent(top.row - 1, top.col, verticalLetter);
+      ensureDifferent(bottom.row + 1, bottom.col, verticalLetter);
+    }
+  }
+
+  return grid;
+}
+
 function createTile(row, col, letter = randomLetter()) {
   return {
     row,
     col,
     letter,
+    powerUp: null,
     repulseBoost: 0,
     tapImpactStart: 0,
   };
 }
 
 function initGrid() {
-  state.grid = fillGridNoMatches(
-    state.gridRows,
-    state.gridCols,
-    state.mask,
-    letters,
-    createTile
-  );
+  const debugConfig = state.config.debug?.match5Test;
+  if (debugConfig && debugConfig.enabled) {
+    state.grid = buildMatch5TestGrid(debugConfig.mode || "horizontal");
+  } else {
+    state.grid = fillGridNoMatches(
+      state.gridRows,
+      state.gridCols,
+      state.mask,
+      letters,
+      createTile
+    );
+  }
 }
 
 function resetScore() {
@@ -198,15 +411,22 @@ function drawTile(tile, offset, scale) {
   dx -= (scaledSize - tileSize) / 2;
   dy -= (scaledSize - tileSize) / 2;
 
-  ctx.fillStyle = state.selected === tile ? "#f6b48c" : "#fff";
-  ctx.strokeStyle = "#2b2b2b";
+  const powerUpStyle = getPowerUpStyle(tile);
+  const baseFill = powerUpStyle?.fill || "#fff";
+  const baseStroke = powerUpStyle?.stroke || "#2b2b2b";
+  const textColor = powerUpStyle?.textColor || "#1f1f1f";
+
+  ctx.fillStyle = state.selected === tile ? "#f6b48c" : baseFill;
+  ctx.strokeStyle = baseStroke;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.roundRect(dx, dy, scaledSize, scaledSize, 10);
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = "#1f1f1f";
+  drawColorClearBadge(tile, dx, dy, scaledSize, powerUpStyle);
+
+  ctx.fillStyle = textColor;
   ctx.font = `${Math.floor(scaledSize * 0.5)}px Georgia`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -422,7 +642,7 @@ function getCascadeStaggerMs() {
   return min + Math.random() * (max - min);
 }
 
-async function resolveMatchesAnimated({ swapOrigin = null } = {}) {
+async function resolveMatchesAnimated({ swapOrigin = null, swapDestination = null } = {}) {
   let matched = findMatches(state.grid, state.gridRows, state.gridCols);
   let didMatch = false;
   let cascadeIndex = 0;
@@ -441,10 +661,30 @@ async function resolveMatchesAnimated({ swapOrigin = null } = {}) {
     );
     state.matchEventIdCounter = nextEventId;
     emitMatchEvents(events);
+
+    const runs = findMatchRuns(state.grid, state.gridRows, state.gridCols);
+    const clearSet = new Set(matched);
+    const reservedPowerUpCells = new Set();
+    for (const run of runs) {
+      if (run.length !== 5) continue;
+      const spawnCell = selectMatchPowerUpCell(run.cells, {
+        swapDestination: cascadeIndex === 0 ? swapDestination : null,
+        reserved: reservedPowerUpCells,
+      });
+      if (!spawnCell) continue;
+      const key = `${spawnCell.row},${spawnCell.col}`;
+      reservedPowerUpCells.add(key);
+      clearSet.delete(key);
+      const tile = state.grid[spawnCell.row][spawnCell.col];
+      if (tile) {
+        tile.powerUp = { type: "color-clear" };
+      }
+    }
+
     const points = scoreMatches(matched);
     state.score += points;
     updateScore();
-    clearMatches(state.grid, matched);
+    clearMatches(state.grid, clearSet);
     await delay(state.config.animations.matchResolveMs);
     const { nextGrid, moves, emptySlots } = collapseExistingTiles(
       state.grid,
@@ -503,7 +743,7 @@ async function resolveMatchesAnimated({ swapOrigin = null } = {}) {
       newFromRects.push(tileRect(-1 - count, slot.col));
       newToRects.push(tileRect(slot.row, slot.col));
       const fromRect = newFromRects[newFromRects.length - 1];
-      const toRect = newToRects[newToRects.length - 1];
+      const toRect = newToRects[newFromRects.length - 1];
       const duration = computeFallDuration(fromRect, toRect);
       newDurations.push(duration);
       const currentTime = newPerColumnTime.get(slot.col) || 0;
@@ -528,7 +768,6 @@ async function resolveMatchesAnimated({ swapOrigin = null } = {}) {
 
   return didMatch;
 }
-
 function isAdjacent(a, b) {
   const dr = Math.abs(a.row - b.row);
   const dc = Math.abs(a.col - b.col);
@@ -543,13 +782,14 @@ async function handleSwap(targetTile) {
   const first = selected;
   const second = targetTile;
   const swapOrigin = { row: first.row, col: first.col };
+  const swapDestination = { row: second.row, col: second.col };
   state.selected = null;
   state.inputLocked = true;
 
   try {
     await animateSwap(first, second);
     swapTiles(first, second);
-    const matched = await resolveMatchesAnimated({ swapOrigin });
+    const matched = await resolveMatchesAnimated({ swapOrigin, swapDestination });
     if (!matched) {
       await animateSwap(first, second);
       swapTiles(first, second);
@@ -644,6 +884,9 @@ async function loadConfig() {
   const configUrl = new URL("../assets/config/gameplay.json", window.location.href);
   const config = await fetchJson(configUrl);
   if (!config) return defaultConfig;
+  const powerUpOverrides = config.powerUps || {};
+  const colorClearOverrides =
+    powerUpOverrides["color-clear"] || powerUpOverrides.colorClear || {};
   return {
     ...defaultConfig,
     ...config,
@@ -654,6 +897,26 @@ async function loadConfig() {
     board: { ...defaultConfig.board, ...(config.board || {}) },
     animations: { ...defaultConfig.animations, ...(config.animations || {}) },
     physics: { ...defaultConfig.physics, ...(config.physics || {}) },
+    debug: {
+      ...defaultConfig.debug,
+      ...(config.debug || {}),
+      match5Test: {
+        ...defaultConfig.debug.match5Test,
+        ...((config.debug && config.debug.match5Test) || {}),
+      },
+    },
+    powerUps: {
+      ...defaultConfig.powerUps,
+      ...powerUpOverrides,
+      "color-clear": {
+        ...defaultConfig.powerUps["color-clear"],
+        ...colorClearOverrides,
+        badge: {
+          ...defaultConfig.powerUps["color-clear"].badge,
+          ...(colorClearOverrides.badge || {}),
+        },
+      },
+    },
   };
 }
 

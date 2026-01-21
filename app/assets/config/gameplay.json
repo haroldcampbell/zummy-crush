@@ -33,5 +33,28 @@
       "scaleDurationMs": 140
     },
     "cascadeSpacingGapMultiplier": 2
+  },
+  "debug": {
+    "match5Test": {
+      "enabled": false,
+      "mode": "horizontal"
+    }
+  },
+  "powerUps": {
+    "color-clear": {
+      "fill": "#fff3c4",
+      "stroke": "#7a4f12",
+      "textColor": "#2a1b09",
+      "badge": {
+        "enabled": true,
+        "fill": "#7a4f12",
+        "stroke": "#1e1206",
+        "text": "XX",
+        "textColor": "#fff6d6",
+        "radiusRatio": 0.18,
+        "offsetRatio": 0.08,
+        "fontScale": 0.9
+      }
+    }
   }
 }

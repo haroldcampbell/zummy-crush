@@ -24,6 +24,8 @@ This process governs how we move from ideas to specs to implementation. It prior
     - Each spec results in a git commit and a PR (or one PR per milestone if needed).
     - Commit regularly with small, focused changes to reduce risk.
     - PRs are always from a branch into main.
+    - Ensure the worktree `origin` remote points to the GitHub repo (copy the URL from `main`).
+    - Create PRs using the git-control MCP tools (not `gh`).
     - Required workflow:
         1. Create a branch
         2. Commit

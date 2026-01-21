@@ -115,8 +115,9 @@ Before work begins, confirm:
 7. Commit regularly (small, focused commits).
 8. Add/update tests for core logic and regressions where applicable.
 9. Write a session hand-off in `hand-offs/` before opening the PR.
-10. Open a PR into `main` and wait for explicit approval to merge.
-11. After merge approval, delete the branch and remove lock files.
+10. Ensure the worktree `origin` remote points to the GitHub repo (copy the URL from `main`).
+11. Open a PR into `main` using the git-control MCP tools and wait for explicit approval to merge.
+12. After merge approval, delete the branch and remove lock files.
 
 ## Stop Conditions
 
