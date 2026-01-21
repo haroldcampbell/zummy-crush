@@ -68,7 +68,7 @@ const defaultConfig = {
     },
   },
   powerUps: {
-    colorClear: {
+    "color-clear": {
       fill: "#fff3c4",
       stroke: "#7a4f12",
       textColor: "#2a1b09",
@@ -885,7 +885,8 @@ async function loadConfig() {
   const config = await fetchJson(configUrl);
   if (!config) return defaultConfig;
   const powerUpOverrides = config.powerUps || {};
-  const colorClearOverrides = powerUpOverrides.colorClear || {};
+  const colorClearOverrides =
+    powerUpOverrides["color-clear"] || powerUpOverrides.colorClear || {};
   return {
     ...defaultConfig,
     ...config,
@@ -907,11 +908,11 @@ async function loadConfig() {
     powerUps: {
       ...defaultConfig.powerUps,
       ...powerUpOverrides,
-      colorClear: {
-        ...defaultConfig.powerUps.colorClear,
+      "color-clear": {
+        ...defaultConfig.powerUps["color-clear"],
         ...colorClearOverrides,
         badge: {
-          ...defaultConfig.powerUps.colorClear.badge,
+          ...defaultConfig.powerUps["color-clear"].badge,
           ...(colorClearOverrides.badge || {}),
         },
       },
