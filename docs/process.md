@@ -4,6 +4,8 @@ This process governs how we move from ideas to specs to implementation. It prior
 
 ## Workflow (Spec-Driven)
 
+Note: This workflow is governed by `docs/multi-agent-strategy.md` for multi-agent coordination and must be followed.
+
 1. Spec definition
     - Draft a spec with scope, non-scope, and DoD.
 2. Collaborative spec review

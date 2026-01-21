@@ -273,6 +273,26 @@ export function buildMatchEvents(
   return { events, nextEventId };
 }
 
+export function buildLineClearSet(grid, rows, cols, { row, col, orientation }) {
+  const keys = new Set();
+  if (!grid || row == null || col == null) return keys;
+  if (orientation === "horizontal") {
+    if (row < 0 || row >= rows) return keys;
+    for (let c = 0; c < cols; c += 1) {
+      const tile = grid[row][c];
+      if (tile) keys.add(`${row},${c}`);
+    }
+    return keys;
+  }
+  if (orientation === "vertical") {
+    if (col < 0 || col >= cols) return keys;
+    for (let r = 0; r < rows; r += 1) {
+      const tile = grid[r][col];
+      if (tile) keys.add(`${r},${col}`);
+    }
+  }
+  return keys;
+}
 export function clearMatches(grid, matchSet) {
   for (const key of matchSet) {
     const [row, col] = key.split(",").map(Number);

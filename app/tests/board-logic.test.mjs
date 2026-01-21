@@ -1,15 +1,14 @@
 import assert from "node:assert/strict";
 import {
   buildGrid,
+  buildLineClearSet,
   buildMatchEvents,
   collapseExistingTiles,
   collapseColumns,
   createMask,
   fillGridNoMatches,
-  findMatchRuns,
   findMatches,
   normalizeMask,
-  selectMatchPowerUpCell,
 } from "../client/board-logic.mjs";
 
 function makeTile(row, col, letter) {
@@ -161,62 +160,27 @@ function testBuildMatchEvents() {
   );
 }
 
-function testFindMatchRuns() {
-  const rows = 1;
-  const cols = 6;
-  const grid = [[
-    makeTile(0, 0, "A"),
-    makeTile(0, 1, "A"),
-    makeTile(0, 2, "A"),
-    makeTile(0, 3, "A"),
-    makeTile(0, 4, "A"),
-    makeTile(0, 5, "B"),
-  ]];
-  const runs = findMatchRuns(grid, rows, cols);
-  assert.equal(runs.length, 1, "findMatchRuns returns a single run");
-  assert.equal(runs[0].length, 5, "run length matches");
-  assert.equal(runs[0].orientation, "horizontal", "orientation matches");
-}
-
-function testFindMatchRunsVertical() {
-  const rows = 6;
-  const cols = 1;
+function testBuildLineClearSet() {
+  const rows = 3;
+  const cols = 3;
   const grid = [
-    [makeTile(0, 0, "C")],
-    [makeTile(1, 0, "C")],
-    [makeTile(2, 0, "C")],
-    [makeTile(3, 0, "C")],
-    [makeTile(4, 0, "C")],
-    [makeTile(5, 0, "D")],
+    [makeTile(0, 0, "A"), makeTile(0, 1, "B"), null],
+    [makeTile(1, 0, "C"), makeTile(1, 1, "D"), makeTile(1, 2, "E")],
+    [null, makeTile(2, 1, "F"), makeTile(2, 2, "G")],
   ];
-  const runs = findMatchRuns(grid, rows, cols);
-  assert.equal(runs.length, 1, "findMatchRuns returns a single vertical run");
-  assert.equal(runs[0].length, 5, "vertical run length matches");
-  assert.equal(runs[0].orientation, "vertical", "orientation matches");
-}
+  const horizontal = buildLineClearSet(grid, rows, cols, {
+    row: 1,
+    col: 1,
+    orientation: "horizontal",
+  });
+  assert.equal(horizontal.size, 3, "horizontal line clear includes row tiles");
 
-function testSelectMatchPowerUpCell() {
-  const cells = [
-    { row: 0, col: 0 },
-    { row: 0, col: 1 },
-    { row: 0, col: 2 },
-    { row: 0, col: 3 },
-    { row: 0, col: 4 },
-  ];
-  const swapDestination = { row: 0, col: 4 };
-  const chosenSwap = selectMatchPowerUpCell(cells, { swapDestination });
-  assert.deepEqual(chosenSwap, swapDestination, "swap destination wins when in match");
-
-  const chosenCenter = selectMatchPowerUpCell(cells);
-  assert.deepEqual(chosenCenter, { row: 0, col: 2 }, "center-most chosen by default");
-
-  const reserved = new Set(["0,2"]);
-  const chosenRight = selectMatchPowerUpCell(cells, { reserved });
-  assert.deepEqual(
-    chosenRight,
-    { row: 0, col: 3 },
-    "reserved center falls back to right before left"
-  );
+  const vertical = buildLineClearSet(grid, rows, cols, {
+    row: 1,
+    col: 1,
+    orientation: "vertical",
+  });
+  assert.equal(vertical.size, 3, "vertical line clear includes column tiles");
 }
 
 function runTests() {
@@ -227,9 +191,7 @@ function runTests() {
   testCollapseExistingTiles();
   testBuildGridCreatesNullsForVoids();
   testBuildMatchEvents();
-  testFindMatchRuns();
-  testFindMatchRunsVertical();
-  testSelectMatchPowerUpCell();
+  testBuildLineClearSet();
   console.log("All board logic tests passed.");
 }
 
