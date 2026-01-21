@@ -29,6 +29,15 @@ Parallel feature work needs a shared, minimal match-event contract to avoid coup
 ## Data / State
 - Match event payload stored or passed during resolution
 
+## Contract v1 (Match Event Payload)
+
+- `id`: monotonic match event id
+- `length`: integer length of the matched run
+- `orientation`: `horizontal` | `vertical`
+- `swapOrigin`: `{ row, col }` or `null` when no swap
+- `cascadeIndex`: integer index starting at 0 for the initial resolution
+- `cells`: array of `{ row, col }` for the matched run
+
 ## Decisions
 - Contract owned by match resolution logic
 - Consumers (loot, micro-rewards) depend only on payload fields
@@ -41,7 +50,7 @@ Parallel feature work needs a shared, minimal match-event contract to avoid coup
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated
