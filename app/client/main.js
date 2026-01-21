@@ -1,5 +1,6 @@
 import {
   clearMatches,
+  buildMatchEvents,
   collapseExistingTiles,
   createMask,
   fillGridNoMatches,
@@ -83,10 +84,20 @@ const state = {
   boardDefinition: null,
   now: 0,
   lastFrameTime: 0,
+  matchEventIdCounter: 1,
+  matchEventListeners: new Set(),
+  lastMatchEvents: [],
 };
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function emitMatchEvents(events) {
+  state.lastMatchEvents = events;
+  for (const listener of state.matchEventListeners) {
+    listener(events);
+  }
 }
 
 function updateScore() {
@@ -411,12 +422,25 @@ function getCascadeStaggerMs() {
   return min + Math.random() * (max - min);
 }
 
-async function resolveMatchesAnimated() {
+async function resolveMatchesAnimated({ swapOrigin = null } = {}) {
   let matched = findMatches(state.grid, state.gridRows, state.gridCols);
   let didMatch = false;
+  let cascadeIndex = 0;
 
   while (matched.size > 0) {
     didMatch = true;
+    const { events, nextEventId } = buildMatchEvents(
+      state.grid,
+      state.gridRows,
+      state.gridCols,
+      {
+        swapOrigin,
+        cascadeIndex,
+        eventIdStart: state.matchEventIdCounter,
+      }
+    );
+    state.matchEventIdCounter = nextEventId;
+    emitMatchEvents(events);
     const points = scoreMatches(matched);
     state.score += points;
     updateScore();
@@ -499,6 +523,7 @@ async function resolveMatchesAnimated() {
       newDurations
     );
     matched = findMatches(state.grid, state.gridRows, state.gridCols);
+    cascadeIndex += 1;
   }
 
   return didMatch;
@@ -517,13 +542,14 @@ async function handleSwap(targetTile) {
 
   const first = selected;
   const second = targetTile;
+  const swapOrigin = { row: first.row, col: first.col };
   state.selected = null;
   state.inputLocked = true;
 
   try {
     await animateSwap(first, second);
     swapTiles(first, second);
-    const matched = await resolveMatchesAnimated();
+    const matched = await resolveMatchesAnimated({ swapOrigin });
     if (!matched) {
       await animateSwap(first, second);
       swapTiles(first, second);

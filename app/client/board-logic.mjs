@@ -115,6 +115,77 @@ export function findMatches(grid, rows, cols) {
   return matches;
 }
 
+/**
+ * Match-event contract v1.
+ * Fields: id, length, orientation, swapOrigin (optional), cascadeIndex.
+ * Includes cells for convenience in downstream features.
+ */
+export function buildMatchEvents(
+  grid,
+  rows,
+  cols,
+  { swapOrigin = null, cascadeIndex = 0, eventIdStart = 1 } = {}
+) {
+  const events = [];
+  let nextEventId = eventIdStart;
+  const normalizedSwapOrigin = swapOrigin ? { ...swapOrigin } : null;
+
+  const pushEvent = (cells, orientation) => {
+    if (cells.length < 3) return;
+    events.push({
+      id: nextEventId,
+      length: cells.length,
+      orientation,
+      swapOrigin: normalizedSwapOrigin,
+      cascadeIndex,
+      cells,
+    });
+    nextEventId += 1;
+  };
+
+  for (let row = 0; row < rows; row += 1) {
+    let runStart = 0;
+    for (let col = 1; col <= cols; col += 1) {
+      const current = col < cols ? grid[row][col] : null;
+      const prev = grid[row][col - 1];
+      const isSame = current && prev && current.letter === prev.letter;
+      if (!isSame) {
+        const runLength = col - runStart;
+        if (runLength >= 3) {
+          const cells = [];
+          for (let c = runStart; c < col; c += 1) {
+            cells.push({ row, col: c });
+          }
+          pushEvent(cells, "horizontal");
+        }
+        runStart = col;
+      }
+    }
+  }
+
+  for (let col = 0; col < cols; col += 1) {
+    let runStart = 0;
+    for (let row = 1; row <= rows; row += 1) {
+      const current = row < rows ? grid[row][col] : null;
+      const prev = grid[row - 1][col];
+      const isSame = current && prev && current.letter === prev.letter;
+      if (!isSame) {
+        const runLength = row - runStart;
+        if (runLength >= 3) {
+          const cells = [];
+          for (let r = runStart; r < row; r += 1) {
+            cells.push({ row: r, col });
+          }
+          pushEvent(cells, "vertical");
+        }
+        runStart = row;
+      }
+    }
+  }
+
+  return { events, nextEventId };
+}
+
 export function clearMatches(grid, matchSet) {
   for (const key of matchSet) {
     const [row, col] = key.split(",").map(Number);

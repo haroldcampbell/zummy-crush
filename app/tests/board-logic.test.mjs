@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildGrid,
+  buildMatchEvents,
   collapseExistingTiles,
   collapseColumns,
   createMask,
@@ -124,6 +125,40 @@ function testBuildGridCreatesNullsForVoids() {
   assert.ok(grid[1][1], "tile exists where mask is 1");
 }
 
+function testBuildMatchEvents() {
+  const rows = 3;
+  const cols = 3;
+  const grid = [
+    [makeTile(0, 0, "A"), makeTile(0, 1, "A"), makeTile(0, 2, "A")],
+    [makeTile(1, 0, "B"), makeTile(1, 1, "C"), makeTile(1, 2, "D")],
+    [makeTile(2, 0, "B"), makeTile(2, 1, "C"), makeTile(2, 2, "D")],
+  ];
+  const { events, nextEventId } = buildMatchEvents(grid, rows, cols, {
+    swapOrigin: { row: 1, col: 1 },
+    cascadeIndex: 2,
+    eventIdStart: 10,
+  });
+  assert.equal(events.length, 1, "buildMatchEvents creates a single horizontal event");
+  assert.equal(events[0].orientation, "horizontal", "event orientation matches row run");
+  assert.equal(events[0].length, 3, "event length matches run length");
+  assert.deepEqual(events[0].swapOrigin, { row: 1, col: 1 }, "swap origin preserved");
+  assert.equal(events[0].cascadeIndex, 2, "cascade index preserved");
+  assert.equal(events[0].id, 10, "event id starts at configured value");
+  assert.equal(nextEventId, 11, "nextEventId increments after events");
+
+  const verticalGrid = [
+    [makeTile(0, 0, "A"), makeTile(0, 1, "C"), makeTile(0, 2, "D")],
+    [makeTile(1, 0, "B"), makeTile(1, 1, "C"), makeTile(1, 2, "E")],
+    [makeTile(2, 0, "F"), makeTile(2, 1, "C"), makeTile(2, 2, "G")],
+  ];
+  const verticalResult = buildMatchEvents(verticalGrid, rows, cols, { eventIdStart: 1 });
+  assert.equal(
+    verticalResult.events[0].orientation,
+    "vertical",
+    "event orientation matches column run"
+  );
+}
+
 function runTests() {
   testNormalizeMask();
   testFindMatchesSkipsVoids();
@@ -131,6 +166,7 @@ function runTests() {
   testCollapseRespectsVoids();
   testCollapseExistingTiles();
   testBuildGridCreatesNullsForVoids();
+  testBuildMatchEvents();
   console.log("All board logic tests passed.");
 }
 
