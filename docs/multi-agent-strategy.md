@@ -45,7 +45,6 @@ Consumers (loot, micro-rewards) depend only on payload fields.
 
 - Event contract instability can create merge conflicts
 - Shared files (e.g., `app/client/main.js`) can become hotspots if modules are not split
-
 ## Work Allocation Rules
 
 - Agents do not work on the same spec concurrently.
