@@ -55,15 +55,18 @@ Enable small, playable releases that cut across layers (mechanics + rewards + fe
 **Typical responsibilities**
 
 - Define milestone/spec slicing for parallel work
-- Recommend WIP limits and sequencing for multi-agent delivery
+- Recommend sequencing for multi-agent delivery
 - Surface dependency risks early and propose decoupling strategies
 - Ensure specs are small, testable, and independently shippable
+- Ensure that shippable releases are valuable
+- Ensure other roles are adhering to process and respecting governance rules.
 
 **Outputs**
 
 - Slicing proposals and sequencing plans
 - Coordination checklists and workflow improvements
 - Risks/gaps lists with mitigation actions
+- Documentations are updated and not stale
 
 ---
 
