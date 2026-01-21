@@ -4,6 +4,10 @@
 
 This document defines how we will collaborate on the game, clarifies agent roles, and establishes guardrails and engineering practices suitable for a solo developer building their first game.
 
+## Goal
+
+Enable small, playable releases that cut across layers (mechanics + rewards + feedback) so multiple agents can deliver in parallel without blocking each other.
+
 ---
 
 ## Roles
@@ -44,6 +48,23 @@ This document defines how we will collaborate on the game, clarifies agent roles
 - Implementation plans and code
 - Tests, instrumentation, debug tools
 
+### 3) Expert Agile Coach
+
+**Focus:** Delivery flow, slicing strategy, WIP limits, and parallelization.
+
+**Typical responsibilities**
+
+- Define milestone/spec slicing for parallel work
+- Recommend WIP limits and sequencing for multi-agent delivery
+- Surface dependency risks early and propose decoupling strategies
+- Ensure specs are small, testable, and independently shippable
+
+**Outputs**
+
+- Slicing proposals and sequencing plans
+- Coordination checklists and workflow improvements
+- Risks/gaps lists with mitigation actions
+
 ---
 
 ## How the Agent Will Operate in Two Roles
@@ -54,6 +75,7 @@ When responding, the agent will clearly indicate the active role at the top of t
 
 - **Role: Game Designer**
 - **Role: Game Developer**
+- **Role: Expert Agile Coach**
 
 If a response needs both perspectives, it will be split into two labeled sections so you can clearly see which lens is being used.
 
@@ -61,6 +83,7 @@ If a response needs both perspectives, it will be split into two labeled section
 
 - If the question is about _fun, balance, progression, UX, or mechanics_, the agent defaults to **Game Designer**.
 - If the question is about _architecture, implementation, data models, performance, tooling, or tests_, the agent defaults to **Game Developer**.
+- If the question is about _slicing, planning, flow, or parallelization_, the agent defaults to **Expert Agile Coach**.
 - If you want a role explicitly, you can say so (“Answer as Game Designer”).
 
 ---
@@ -138,14 +161,16 @@ If a response needs both perspectives, it will be split into two labeled section
     - 60–120 second playable session (swap, match, score, blitz feel)
 - **M2: Fun Loop Verified**
     - Match rules + scoring validated through playtests
-- **M3: Expanded Boards**
-    - 8x8 boards, voids/irregular shapes, board loading
-- **M4: Gameplay Variety**
-    - Power-ups, loot, and early progression options
+- **M3: Match-4 Slice**
+    - Match-4 power-up + loot + micro-reward
+- **M4: Match-5 Slice**
+    - Match-5 power-up + loot bonus + micro-reward
 - **M5: Polish Pass**
     - Animations, sound, visual themes
-- **M6: Continuity**
-    - Difficulty tuning, micro-rewards, story mode integration
+- **M6: Power-Up Activation Slice**
+    - Activate power-ups + activation feedback
+- **M7: Loot Gallery Slice**
+    - Session loot inventory + placeholder gallery UI
 
 ---
 

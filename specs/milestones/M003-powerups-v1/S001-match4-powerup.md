@@ -1,4 +1,4 @@
-# Spec: M003-S001: Match-4 Power-Up
+# Spec: M003-S001: Match-4 Power-Up Creation
 
 ## Principles Reference
 
@@ -12,7 +12,7 @@ Add a basic power-up that is created on a 4-in-a-row match.
 - Spawn a power-up tile
 
 ## Non-Goals
-- Complex activation patterns
+- Power-up activation (handled in a later slice)
 
 ## Functional Requirements
 - 4-match produces a distinct power-up tile
@@ -37,7 +37,7 @@ Add a basic power-up that is created on a 4-in-a-row match.
 - 4-match creates power-up tile
 
 ## Out of Scope
-- Power-up activation
+- Power-up activation or chained effects
 
 ## Acceptance Checklist
 
