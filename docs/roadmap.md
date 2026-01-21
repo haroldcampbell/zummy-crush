@@ -26,6 +26,17 @@ This roadmap is a milestone-based checklist. Each milestone links to its specs.
 - [ ] M007 - Loot Gallery Slice
   - Specs: `specs/milestones/M007-loot-gallery/`
 
+## Recommended Slicing
+
+Use layer-crossing milestones that ship small, playable slices and avoid coupling between power-ups and loot layers.
+
+- M003: Match-4 Slice (Power-Up + Loot + Micro-Reward)
+- M004: Match-5 Slice (Power-Up + Loot + Micro-Reward)
+- M006: Power-Up Activation Slice + Micro-Reward
+- M007: Loot Gallery Slice
+
+Reference: `tmp/slicing-proposal.md`.
+
 ## Notes
 
 - Milestones beyond M007 will be added after validation of core fun/loop.
