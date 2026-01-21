@@ -10,6 +10,19 @@ Enable multiple agents to work independently without duplicating effort or confl
 - Each milestone is decomposed into independent specs where possible.
 - Each spec has its own branch and PR, or a single PR per milestone if tightly coupled.
 
+## Recommended Slicing (Layer-Crossing)
+
+To reduce coupling and enable true parallel delivery, milestones should be vertical slices that include a mechanic + reward/feedback layer rather than layer-only milestones.
+
+Current slicing model (see `tmp/slicing-proposal.md` for full detail):
+
+- M003: Match-4 Slice (Power-Up + Loot + Micro-Reward)
+- M004: Match-5 Slice (Power-Up + Loot + Micro-Reward)
+- M006: Power-Up Activation Slice + Micro-Reward
+- M007: Loot Gallery Slice
+
+When adding or revising milestones, prefer these slice boundaries and avoid introducing dependencies between M003 and M004.
+
 ## Work Allocation Rules
 
 - Agents do not work on the same spec concurrently.
