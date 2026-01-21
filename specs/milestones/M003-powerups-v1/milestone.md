@@ -1,33 +1,36 @@
-# Milestone: M003 - Power-Ups v1
+# Milestone: M003 - Match-4 Slice (Power-Up + Loot + Micro-Reward)
 
 ## Principles Reference
 
 - See `docs/principles.md` for non-negotiable workflow rules (including PR merge approval).
 
 ## Goal
-Introduce a minimal set of power-ups that enhance play without overcomplicating the core loop.
+Deliver a playable slice centered on match-4 power-ups with a basic loot trigger and a micro-reward.
 
 ## Scope (In)
-- Match-4 and Match-5 power-ups
-- Basic power-up activation
-- Simple visual feedback
+- Match-4 power-up creation
+- Match-4 loot trigger (minimal)
+- Micro-reward for first power-up created
+- Shared match event contract v1
 
 ## Scope (Out)
-- Loot-based power-ups
-- Time-based tiles
-- Cascading power-up chains
+- Power-up activation
+- Match-5 power-ups
+- Loot gallery
 
 ## Success Criteria
-- Power-ups appear on qualifying matches
-- Power-ups activate and clear tiles
+- Match-4 creates a power-up tile
+- Loot drops can be triggered from match-4 events
+- Micro-reward triggers on first power-up creation
 
 ## Specs
-- [ ] S001 - Match-4 Power-Up
-- [ ] S002 - Match-5 Power-Up
-- [ ] S003 - Power-Up Activation Rules
+- [ ] S001 - Match-4 Power-Up Creation
+- [ ] S002 - Match-4 Loot Trigger (Minimal)
+- [ ] S003 - Micro-Reward: First Power-Up Created
+- [ ] S004 - Shared Event Contract v1
 
 ## Dependencies
 - M002 board expansion
 
 ## Risks
-- Power-up logic may conflict with cascade rules
+- Event contract instability could create merge conflicts

@@ -1,32 +1,36 @@
-# Milestone: M004 - Loot + Micro-Rewards v1
+# Milestone: M004 - Match-5 Slice (Power-Up + Loot + Micro-Reward)
 
 ## Principles Reference
 
 - See `docs/principles.md` for non-negotiable workflow rules (including PR merge approval).
 
 ## Goal
-Introduce a lightweight loot and micro-reward layer to encourage engagement.
+Deliver a playable slice centered on match-5 power-ups with a loot bonus and a micro-reward.
 
 ## Scope (In)
-- Simple loot drops (cards/gems)
-- Loot gallery placeholder UI
-- Micro-reward triggers
+- Match-5 power-up creation
+- Match-5 loot bonus
+- Micro-reward for first match-5
+- Match-5 visual identity
 
 ## Scope (Out)
+- Power-up activation
+- Loot gallery
 - Full economy or store
-- Monetization mechanics
 
 ## Success Criteria
-- Loot drops occur and are visible
-- Micro-reward feedback appears after milestones
+- Match-5 creates a power-up tile
+- Match-5 loot bonus triggers as configured
+- Micro-reward triggers on first match-5
 
 ## Specs
-- [ ] S001 - Loot Drop Rules
-- [ ] S002 - Loot Gallery Placeholder
-- [ ] S003 - Micro-Reward Triggers
+- [ ] S001 - Match-5 Power-Up Creation
+- [ ] S002 - Match-5 Loot Bonus
+- [ ] S003 - Micro-Reward: First Match-5
+- [ ] S004 - Match-5 Visual Identity
 
 ## Dependencies
-- M003 power-ups
+- M002 board expansion
 
 ## Risks
-- Rewards could distract from core gameplay
+- Match-5 tuning may impact game pacing

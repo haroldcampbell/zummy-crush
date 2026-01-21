@@ -1,20 +1,21 @@
-# Spec: M004-S002: Loot Gallery Placeholder
+# Spec: M007-S002: Loot Gallery Placeholder UI
 
 ## Principles Reference
 
 - See `docs/principles.md` for non-negotiable workflow rules (including PR merge approval).
 
 ## Problem Statement
-Show a placeholder gallery UI for collected loot.
+Provide a minimal UI to display session loot.
 
 ## Goals
-- Display loot list (even if temporary)
+- Display loot list in a lightweight overlay
 
 ## Non-Goals
 - Full gallery experience
 
 ## Functional Requirements
 - Basic list/grid of loot types
+- Close/dismiss control
 
 ## Non-Functional Requirements
 - Lightweight UI only
@@ -26,11 +27,10 @@ Show a placeholder gallery UI for collected loot.
 - Read from session loot inventory
 
 ## Decisions
-- Placement: a small HUD button opens a lightweight modal overlay with the loot list
-- Access: default hidden during gameplay except for the HUD button
+- Modal overlay launched from HUD
 
 ## Definition of Done (DoD)
-- Loot gallery placeholder visible
+- Loot gallery placeholder visible and usable
 
 ## Out of Scope
 - Persistent inventory UI

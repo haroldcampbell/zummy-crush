@@ -1,4 +1,4 @@
-# Spec: M003-S002: Match-5 Power-Up
+# Spec: M004-S001: Match-5 Power-Up Creation
 
 ## Principles Reference
 
@@ -9,10 +9,11 @@ Add a power-up created from a 5-in-a-row match.
 
 ## Goals
 - Detect 5-in-a-row matches
-- Spawn a more powerful tile
+- Spawn a color-clear power-up tile
 
 ## Non-Goals
-- Cross/branch power-ups (later)
+- Power-up activation
+- Cross/branch power-ups
 
 ## Functional Requirements
 - 5-match produces a distinct power-up tile
