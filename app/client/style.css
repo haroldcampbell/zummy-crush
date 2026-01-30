@@ -81,3 +81,46 @@ body {
   background: #fdfbf8;
   border-radius: 12px;
 }
+
+.toast-layer {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.toast {
+  background: #2b2b2b;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: toast-fade var(--toast-duration, 1600ms) ease forwards;
+}
+
+@keyframes toast-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
