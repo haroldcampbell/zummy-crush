@@ -11,7 +11,12 @@ import {
   selectMatchPowerUpCell,
 } from "./board-logic.mjs";
 import { computeRepulsionOffsets, computeTapScale, decayBoost } from "./physics-utils.mjs";
-import { formatLootLabel, pickWeightedChoice } from "./loot-utils.mjs";
+import {
+  applyMatch4LootDrops,
+  createLootSession,
+  formatLootLabel,
+  pickWeightedChoice,
+} from "./loot-utils.mjs";
 
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
@@ -65,6 +70,10 @@ const defaultConfig = {
     cascadeSpacingGapMultiplier: 2,
   },
   debug: {
+    match4Test: {
+      enabled: false,
+      mode: "horizontal",
+    },
     match5Test: {
       enabled: false,
       mode: "horizontal",
@@ -105,6 +114,19 @@ const defaultConfig = {
     },
   },
   loot: {
+    match4: {
+      enabled: true,
+      sessionCap: 2,
+      types: [
+        { id: "gem", weight: 60 },
+        { id: "card", weight: 40 },
+      ],
+      toast: {
+        enabled: true,
+        durationMs: 1200,
+        text: "Match-4 loot: {loot}",
+      },
+    },
     match5Bonus: {
       enabled: true,
       sessionCap: 3,
@@ -148,11 +170,8 @@ const state = {
   matchEventIdCounter: 1,
   matchEventListeners: new Set(),
   lastMatchEvents: [],
-  loot: {
-    session: [],
-    match5BonusCount: 0,
-    nextLootId: 1,
-  },
+  loot: createLootSession(),
+  debugMatch4Keys: new Set(),
 };
 
 function delay(ms) {
@@ -170,11 +189,11 @@ function updateScore() {
   scoreEl.textContent = scoreFormatter.format(state.score);
 }
 
-function getMatch5LootConfig() {
-  return state.config.loot?.match5Bonus || {};
+function getLootConfig(key) {
+  return state.config.loot?.[key] || {};
 }
 
-function getMatch5LootTypes(config) {
+function getLootTypes(config) {
   if (Array.isArray(config.types)) return config.types;
   if (Array.isArray(config.weights)) return config.weights;
   return [];
@@ -195,16 +214,14 @@ function showToast(message, { durationMs = 1600 } = {}) {
 }
 
 function resetLootSession() {
-  state.loot.session = [];
-  state.loot.match5BonusCount = 0;
-  state.loot.nextLootId = 1;
+  state.loot = createLootSession();
 }
 
-function recordLootDrop({ type, event }) {
+function recordLootDrop({ type, event, source = "match5-bonus" }) {
   const entry = {
     id: state.loot.nextLootId,
     type,
-    source: "match5-bonus",
+    source,
     eventId: event?.id ?? null,
     cascadeIndex: event?.cascadeIndex ?? null,
     orientation: event?.orientation ?? null,
@@ -216,10 +233,34 @@ function recordLootDrop({ type, event }) {
   return entry;
 }
 
-function handleMatch5LootBonus(events) {
-  const config = getMatch5LootConfig();
+function handleMatch4LootDrops(events) {
+  const config = getLootConfig("match4");
   if (!config.enabled) return;
-  const types = getMatch5LootTypes(config);
+  const drops = applyMatch4LootDrops(events, config, state.loot);
+  if (drops.length === 0) return;
+
+  for (const drop of drops) {
+    recordLootDrop({ type: drop.type, event: drop.event, source: "match4" });
+  }
+
+  const toastConfig = config.toast || {};
+  if (toastConfig.enabled) {
+    const durationMs = toastConfig.durationMs ?? 1200;
+    if (drops.length === 1) {
+      const label = formatLootLabel(drops[0].type);
+      const template = toastConfig.text || "Match-4 loot: {loot}";
+      const message = template.replace("{loot}", label);
+      showToast(message, { durationMs });
+    } else {
+      showToast(`Match-4 loot x${drops.length}`, { durationMs });
+    }
+  }
+}
+
+function handleMatch5LootBonus(events) {
+  const config = getLootConfig("match5Bonus");
+  if (!config.enabled) return;
+  const types = getLootTypes(config);
   if (types.length === 0) return;
 
   const cap = Number(config.sessionCap);
@@ -232,7 +273,7 @@ function handleMatch5LootBonus(events) {
     if (!choice) return;
     state.loot.match5BonusCount += 1;
     const lootType = choice.id || choice.type || "loot";
-    recordLootDrop({ type: lootType, event });
+    recordLootDrop({ type: lootType, event, source: "match5-bonus" });
 
     const toastConfig = config.toast || {};
     if (toastConfig.enabled) {
@@ -243,7 +284,6 @@ function handleMatch5LootBonus(events) {
     }
   }
 }
-
 function isColorClearTile(tile) {
   return tile && tile.powerUp && tile.powerUp.type === "color-clear";
 }
@@ -389,7 +429,7 @@ function findCenteredMaskRun(mask, rows, cols, length, orientation) {
   return best;
 }
 
-function buildMatch5TestGrid(mode) {
+function buildMatchTestGrid(length, mode) {
   const grid = [];
   for (let row = 0; row < state.gridRows; row += 1) {
     const rowTiles = [];
@@ -420,19 +460,21 @@ function buildMatch5TestGrid(mode) {
   const horizontalLetter = letters[0];
   const verticalLetter =
     mode === "both" ? horizontalLetter : letters[1] || letters[0];
+  const highlightKeys = new Set();
 
   if (wantsHorizontal) {
     const run = findCenteredMaskRun(
       state.mask,
       state.gridRows,
       state.gridCols,
-      5,
+      length,
       "horizontal"
     );
     if (run) {
       for (const cell of run) {
         const tile = grid[cell.row][cell.col];
         if (tile) tile.letter = horizontalLetter;
+        highlightKeys.add(`${cell.row},${cell.col}`);
       }
       const left = run[0];
       const right = run[run.length - 1];
@@ -446,13 +488,14 @@ function buildMatch5TestGrid(mode) {
       state.mask,
       state.gridRows,
       state.gridCols,
-      5,
+      length,
       "vertical"
     );
     if (run) {
       for (const cell of run) {
         const tile = grid[cell.row][cell.col];
         if (tile) tile.letter = verticalLetter;
+        highlightKeys.add(`${cell.row},${cell.col}`);
       }
       const top = run[0];
       const bottom = run[run.length - 1];
@@ -461,7 +504,15 @@ function buildMatch5TestGrid(mode) {
     }
   }
 
-  return grid;
+  return { grid, highlightKeys };
+}
+
+function buildMatch4TestGrid(mode) {
+  return buildMatchTestGrid(4, mode);
+}
+
+function buildMatch5TestGrid(mode) {
+  return buildMatchTestGrid(5, mode);
 }
 
 function createTile(row, col, letter = randomLetter()) {
@@ -504,9 +555,16 @@ function drawLineClearStripe(tile, dx, dy, size, style) {
 }
 
 function initGrid() {
-  const debugConfig = state.config.debug?.match5Test;
-  if (debugConfig && debugConfig.enabled) {
-    state.grid = buildMatch5TestGrid(debugConfig.mode || "horizontal");
+  const match4Config = state.config.debug?.match4Test;
+  const match5Config = state.config.debug?.match5Test;
+  if (match4Config && match4Config.enabled) {
+    const result = buildMatch4TestGrid(match4Config.mode || "horizontal");
+    state.grid = result.grid;
+    state.debugMatch4Keys = result.highlightKeys;
+  } else if (match5Config && match5Config.enabled) {
+    const result = buildMatch5TestGrid(match5Config.mode || "horizontal");
+    state.grid = result.grid;
+    state.debugMatch4Keys = new Set();
   } else {
     state.grid = fillGridNoMatches(
       state.gridRows,
@@ -515,6 +573,7 @@ function initGrid() {
       letters,
       createTile
     );
+    state.debugMatch4Keys = new Set();
   }
 }
 
@@ -591,6 +650,16 @@ function drawTile(tile, offset, scale) {
   ctx.roundRect(dx, dy, scaledSize, scaledSize, 10);
   ctx.fill();
   ctx.stroke();
+
+  if (state.config.debug?.match4Test?.enabled) {
+    const key = `${tile.row},${tile.col}`;
+    if (state.debugMatch4Keys.has(key)) {
+      ctx.fillStyle = "rgba(255, 173, 46, 0.35)";
+      ctx.beginPath();
+      ctx.roundRect(dx + 2, dy + 2, scaledSize - 4, scaledSize - 4, 8);
+      ctx.fill();
+    }
+  }
 
   drawColorClearBadge(tile, dx, dy, scaledSize, powerUpStyle);
   drawLineClearStripe(tile, dx, dy, scaledSize, powerUpStyle);
@@ -1117,6 +1186,7 @@ async function loadConfig() {
     powerUpOverrides["line-clear"] || powerUpOverrides.lineClear || {};
   const lootOverrides = config.loot || {};
   const lootMatch5Overrides = lootOverrides.match5Bonus || {};
+  const lootMatch4Overrides = lootOverrides.match4 || {};
   return {
     ...defaultConfig,
     ...config,
@@ -1130,6 +1200,10 @@ async function loadConfig() {
     debug: {
       ...defaultConfig.debug,
       ...(config.debug || {}),
+      match4Test: {
+        ...defaultConfig.debug.match4Test,
+        ...((config.debug && config.debug.match4Test) || {}),
+      },
       match5Test: {
         ...defaultConfig.debug.match5Test,
         ...((config.debug && config.debug.match5Test) || {}),
@@ -1158,6 +1232,14 @@ async function loadConfig() {
     loot: {
       ...defaultConfig.loot,
       ...lootOverrides,
+      match4: {
+        ...defaultConfig.loot.match4,
+        ...lootMatch4Overrides,
+        toast: {
+          ...defaultConfig.loot.match4.toast,
+          ...(lootMatch4Overrides.toast || {}),
+        },
+      },
       match5Bonus: {
         ...defaultConfig.loot.match5Bonus,
         ...lootMatch5Overrides,
@@ -1195,6 +1277,7 @@ async function loadBoardDefinition() {
 
 async function init() {
   state.config = await loadConfig();
+  state.matchEventListeners.add(handleMatch4LootDrops);
   state.matchEventListeners.add(handleMatch5LootBonus);
   document.documentElement.style.setProperty(
     "--board-max-width",
