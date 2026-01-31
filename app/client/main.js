@@ -17,6 +17,7 @@ import {
   formatLootLabel,
   pickWeightedChoice,
 } from "./loot-utils.mjs";
+import { shouldTriggerFirstMatch5Reward } from "./micro-reward-utils.mjs";
 
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
@@ -142,6 +143,17 @@ const defaultConfig = {
       },
     },
   },
+  microRewards: {
+    firstMatch5: {
+      enabled: true,
+      cooldownMs: 2000,
+      toast: {
+        enabled: true,
+        durationMs: 1800,
+        text: "First Match-5!",
+      },
+    },
+  },
 };
 
 const scoreFormatter = new Intl.NumberFormat("en-US");
@@ -172,6 +184,10 @@ const state = {
   lastMatchEvents: [],
   loot: createLootSession(),
   debugMatch4Keys: new Set(),
+  microRewards: {
+    firstMatch5Triggered: false,
+    lastFirstMatch5At: -Infinity,
+  },
 };
 
 function delay(ms) {
@@ -282,6 +298,37 @@ function handleMatch5LootBonus(events) {
       const message = template.replace("{loot}", label);
       showToast(message, { durationMs: toastConfig.durationMs });
     }
+  }
+}
+function getFirstMatch5RewardConfig() {
+  return state.config.microRewards?.firstMatch5 || {};
+}
+
+function resetMicroRewards() {
+  state.microRewards.firstMatch5Triggered = false;
+  state.microRewards.lastFirstMatch5At = -Infinity;
+}
+
+function handleFirstMatch5Reward(events) {
+  const config = getFirstMatch5RewardConfig();
+  if (!config.enabled) return;
+  const now = performance.now();
+  const shouldTrigger = shouldTriggerFirstMatch5Reward({
+    events,
+    alreadyTriggered: state.microRewards.firstMatch5Triggered,
+    lastTriggeredAt: state.microRewards.lastFirstMatch5At,
+    now,
+    cooldownMs: config.cooldownMs,
+  });
+  if (!shouldTrigger) return;
+
+  state.microRewards.firstMatch5Triggered = true;
+  state.microRewards.lastFirstMatch5At = now;
+
+  const toastConfig = config.toast || {};
+  if (toastConfig.enabled) {
+    const message = toastConfig.text || "First Match-5!";
+    showToast(message, { durationMs: toastConfig.durationMs });
   }
 }
 function isColorClearTile(tile) {
@@ -586,6 +633,7 @@ function resetGame() {
   initGrid();
   resetScore();
   resetLootSession();
+  resetMicroRewards();
   state.selected = null;
   state.dragging = false;
 }
@@ -1186,6 +1234,8 @@ async function loadConfig() {
     powerUpOverrides["line-clear"] || powerUpOverrides.lineClear || {};
   const lootOverrides = config.loot || {};
   const lootMatch5Overrides = lootOverrides.match5Bonus || {};
+  const microRewardOverrides = config.microRewards || {};
+  const firstMatch5Overrides = microRewardOverrides.firstMatch5 || {};
   const lootMatch4Overrides = lootOverrides.match4 || {};
   return {
     ...defaultConfig,
@@ -1249,6 +1299,18 @@ async function loadConfig() {
         },
       },
     },
+    microRewards: {
+      ...defaultConfig.microRewards,
+      ...microRewardOverrides,
+      firstMatch5: {
+        ...defaultConfig.microRewards.firstMatch5,
+        ...firstMatch5Overrides,
+        toast: {
+          ...defaultConfig.microRewards.firstMatch5.toast,
+          ...(firstMatch5Overrides.toast || {}),
+        },
+      },
+    },
   };
 }
 
@@ -1279,6 +1341,7 @@ async function init() {
   state.config = await loadConfig();
   state.matchEventListeners.add(handleMatch4LootDrops);
   state.matchEventListeners.add(handleMatch5LootBonus);
+  state.matchEventListeners.add(handleFirstMatch5Reward);
   document.documentElement.style.setProperty(
     "--board-max-width",
     `${state.config.board.maxWidth}px`
