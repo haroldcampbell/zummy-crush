@@ -74,6 +74,7 @@ Consumers (loot, micro-rewards) depend only on payload fields.
 - Once an agent has completed their work, they will:
     - update the checklist for the specs and milestone
     - create sesion hand-off, commit their code to the branch, and create the PRs
+    - update their `logs/agent-<id>.status.md` with completed PRs/specs and current status
     - remove the .lock files
     - move on to the next available milestone
 - Agents should follow the Multi-Agent Kickoff Checklist before starting implementation work.
