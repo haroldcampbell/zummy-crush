@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildGrid,
+  buildColorClearSet,
   buildLineClearSet,
   buildMatchEvents,
   collapseExistingTiles,
@@ -184,6 +185,22 @@ function testBuildLineClearSet() {
   assert.equal(vertical.size, 3, "vertical line clear includes column tiles");
 }
 
+function testBuildColorClearSet() {
+  const rows = 3;
+  const cols = 3;
+  const grid = [
+    [makeTile(0, 0, "A"), makeTile(0, 1, "B"), null],
+    [makeTile(1, 0, "B"), makeTile(1, 1, "C"), makeTile(1, 2, "B")],
+    [null, makeTile(2, 1, "D"), makeTile(2, 2, "B")],
+  ];
+  const clearSet = buildColorClearSet(grid, rows, cols, "B");
+  assert.equal(clearSet.size, 4, "color clear includes all matching letters");
+  assert.ok(clearSet.has("0,1"), "includes matching tile at 0,1");
+  assert.ok(clearSet.has("1,0"), "includes matching tile at 1,0");
+  assert.ok(clearSet.has("1,2"), "includes matching tile at 1,2");
+  assert.ok(clearSet.has("2,2"), "includes matching tile at 2,2");
+}
+
 function testSelectMatchPowerUpCellPrefersSwapDestination() {
   const cells = [
     { row: 1, col: 1 },
@@ -227,6 +244,7 @@ function runTests() {
   testBuildGridCreatesNullsForVoids();
   testBuildMatchEvents();
   testBuildLineClearSet();
+  testBuildColorClearSet();
   testSelectMatchPowerUpCellPrefersSwapDestination();
   testSelectMatchPowerUpCellEvenHorizontal();
   testSelectMatchPowerUpCellEvenVertical();

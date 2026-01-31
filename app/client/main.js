@@ -1,4 +1,5 @@
 import {
+  buildColorClearSet,
   buildLineClearSet,
   clearMatches,
   buildMatchEvents,
@@ -1107,6 +1108,42 @@ async function activateLineClearSwap(lineClearTiles, { hasCombo = false } = {}) 
   return true;
 }
 
+async function activateColorClearSwap(first, second) {
+  const firstIs = isColorClearTile(first);
+  const secondIs = isColorClearTile(second);
+  if (!firstIs && !secondIs) return false;
+
+  let targetLetter = null;
+  if (firstIs && !secondIs) {
+    targetLetter = second?.letter;
+  } else if (secondIs && !firstIs) {
+    targetLetter = first?.letter;
+  } else {
+    targetLetter = second?.letter || first?.letter;
+  }
+
+  if (!targetLetter) return false;
+
+  const clearSet = buildColorClearSet(
+    state.grid,
+    state.gridRows,
+    state.gridCols,
+    targetLetter
+  );
+  if (firstIs) clearSet.add(`${first.row},${first.col}`);
+  if (secondIs) clearSet.add(`${second.row},${second.col}`);
+  if (clearSet.size === 0) return false;
+
+  const clearPoints = scoreMatches(clearSet);
+  state.score += clearPoints;
+  updateScore();
+  clearMatches(state.grid, clearSet);
+  await delay(state.config.animations.matchResolveMs);
+  await collapseAndRefill();
+  await resolveMatchesAnimated();
+  return true;
+}
+
 function isAdjacent(a, b) {
   const dr = Math.abs(a.row - b.row);
   const dc = Math.abs(a.col - b.col);
@@ -1130,6 +1167,8 @@ async function handleSwap(targetTile) {
   try {
     await animateSwap(first, second);
     swapTiles(first, second);
+    const colorActivated = await activateColorClearSwap(first, second);
+    if (colorActivated) return;
     const activated = await activateLineClearSwap(lineClearTiles, { hasCombo });
     if (activated) return;
     const matched = await resolveMatchesAnimated({ swapOrigin, swapDestination });

@@ -293,6 +293,20 @@ export function buildLineClearSet(grid, rows, cols, { row, col, orientation }) {
   }
   return keys;
 }
+
+export function buildColorClearSet(grid, rows, cols, letter) {
+  const keys = new Set();
+  if (!grid || !letter) return keys;
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const tile = grid[row][col];
+      if (tile && tile.letter === letter) {
+        keys.add(`${row},${col}`);
+      }
+    }
+  }
+  return keys;
+}
 export function clearMatches(grid, matchSet) {
   for (const key of matchSet) {
     const [row, col] = key.split(",").map(Number);
