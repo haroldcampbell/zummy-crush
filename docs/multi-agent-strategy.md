@@ -45,6 +45,7 @@ Consumers (loot, micro-rewards) depend only on payload fields.
 
 - Event contract instability can create merge conflicts
 - Shared files (e.g., `app/client/main.js`) can become hotspots if modules are not split
+
 ## Work Allocation Rules
 
 - Agents do not work on the same spec concurrently.
@@ -133,3 +134,9 @@ Before work begins, confirm:
 
 - Before opening a PR, rebase your feature branch onto `origin/main` to incorporate the latest shared changes.
 - Resolve any conflicts during the rebase; do not force-update `main`.
+
+## Post-Merge Sync + Cleanup (Single Instruction)
+
+NOTE: the post-merge sync must not remove the .worktrees/<agent-id>.
+
+- Run: `git pull --ff-only origin main && git status -sb && git branch -D <feature-branch> && rm -f locks/milestone.MXXX.lock locks/spec.MXXX-SYYY.lock`

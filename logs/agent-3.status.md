@@ -6,7 +6,7 @@
 ### work-status
 
 - [x] waiting assignment
-- [ ] assigned spec: TBC
+- [ ] assigned spec: none (awaiting assignment)
 
 ## Work previously completed
 - PR #20: M006-S001 line-clear activation (letterless variant) + rebase standard
