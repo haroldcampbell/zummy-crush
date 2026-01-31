@@ -39,7 +39,7 @@ Provide a celebratory micro-reward when the first match-5 occurs.
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

@@ -26,7 +26,7 @@ Deliver a playable slice centered on match-5 power-ups with a loot bonus and a m
 ## Specs
 - [x] S001 - Match-5 Power-Up Creation
 - [x] S002 - Match-5 Loot Bonus
-- [ ] S003 - Micro-Reward: First Match-5
+- [x] S003 - Micro-Reward: First Match-5
 - [ ] S004 - Match-5 Visual Identity
 
 ## Dependencies

@@ -88,5 +88,16 @@
         "text": "Match-5 bonus: {loot}"
       }
     }
+  },
+  "microRewards": {
+    "firstMatch5": {
+      "enabled": true,
+      "cooldownMs": 2000,
+      "toast": {
+        "enabled": true,
+        "durationMs": 1800,
+        "text": "First Match-5!"
+      }
+    }
   }
 }
