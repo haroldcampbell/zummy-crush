@@ -16,6 +16,7 @@ body {
   color: #222;
 }
 
+
 .app {
   min-height: 100vh;
   display: flex;
@@ -33,6 +34,7 @@ body {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
   display: grid;
   gap: 12px;
+  position: relative;
 }
 
 .hud {

@@ -9,6 +9,7 @@ Add a minimal loot gallery that surfaces session loot without blocking gameplay.
 
 ## Scope (In)
 - Session loot inventory model
+- Loot tray + activation interaction
 - Placeholder gallery UI
 - HUD entry point
 
@@ -23,6 +24,7 @@ Add a minimal loot gallery that surfaces session loot without blocking gameplay.
 - [ ] S001 - Session Loot Inventory Model
 - [ ] S002 - Loot Gallery Placeholder UI
 - [ ] S003 - HUD Entry Point
+- [ ] S004 - Loot Tray + Activation Interaction
 
 ## Dependencies
 - Loot drops tracked in M003/M004 slices

@@ -42,7 +42,7 @@ Use layer-crossing milestones that ship small, playable slices and avoid couplin
 - M003: Match-4 power-up creation, match-4 loot trigger, first power-up micro-reward, shared event contract v1
 - M004: Match-5 power-up creation, match-5 loot bonus, first match-5 micro-reward, match-5 visual identity
 - M006: Activate line clear, activate color clear, first activation micro-reward, activation feedback
-- M007: Session loot inventory, loot gallery placeholder, HUD entry point
+- M007: Session loot inventory, loot tray + activation interaction, loot gallery placeholder, HUD entry point
 
 ### Parallelization Pattern
 
