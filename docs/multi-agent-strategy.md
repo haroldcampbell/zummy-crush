@@ -133,3 +133,7 @@ Before work begins, confirm:
 
 - Before opening a PR, rebase your feature branch onto `origin/main` to incorporate the latest shared changes.
 - Resolve any conflicts during the rebase; do not force-update `main`.
+
+## Post-Merge Sync + Cleanup (Single Instruction)
+
+- Run: `git pull --ff-only origin main && git status -sb && rm -rf .worktrees/<agent-id> && git branch -D <feature-branch> && rm -f locks/milestone.MXXX.lock locks/spec.MXXX-SYYY.lock`
