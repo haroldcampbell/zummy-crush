@@ -110,3 +110,27 @@ Expected Effect
 
 Validation Notes
 - Check 360x640 baseline for legibility.
+
+---
+
+## XDR-006: Loot Is Off-Board and Player-Triggered; Power-Ups Are On-Board and Automatic
+
+Context
+- Players need a clear mental model for loot vs power-ups.
+- Loot should feel like a collect-and-spend resource, while power-ups are part of the core match loop.
+
+Alternatives Considered
+- Treat loot as special tiles that appear on the board.
+- Auto-apply loot immediately on drop (no player choice).
+
+Decision
+- Loot lives off-board in a tray and is player-triggered at a chosen time.
+- Power-ups remain on the board and resolve automatically through normal match flow.
+
+Expected Effect
+- Clearer separation between tactical (power-up) and strategic (loot) actions.
+- Reduced board clutter and higher player agency for loot usage.
+
+Validation Notes
+- Check that players can explain the difference after a short playtest.
+- Watch for confusion about when loot applies vs power-ups.

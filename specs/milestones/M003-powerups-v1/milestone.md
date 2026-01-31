@@ -25,7 +25,7 @@ Deliver a playable slice centered on match-4 power-ups with a basic loot trigger
 
 ## Specs
 - [x] S001 - Match-4 Power-Up Creation
-- [ ] S002 - Match-4 Loot Trigger (Minimal)
+- [x] S002 - Match-4 Loot Trigger (Minimal)
 - [ ] S003 - Micro-Reward: First Power-Up Created
 - [x] S004 - Shared Event Contract v1
 

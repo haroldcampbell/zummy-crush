@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { formatLootLabel, pickWeightedChoice } from "../client/loot-utils.mjs";
+import {
+  applyMatch4LootDrops,
+  formatLootLabel,
+  pickWeightedChoice,
+} from "../client/loot-utils.mjs";
 
 function testPickWeightedChoice() {
   const items = [
@@ -24,10 +28,37 @@ function testFormatLootLabel() {
   assert.equal(formatLootLabel("ancient-relic"), "Ancient Relic", "dashes become spaces");
 }
 
-function runTests() {
-  testPickWeightedChoice();
-  testFormatLootLabel();
-  console.log("All loot utils tests passed.");
+function testApplyMatch4LootDrops() {
+  const events = [
+    { id: 1, length: 4, cascadeIndex: 0 },
+    { id: 2, length: 5, cascadeIndex: 0 },
+  ];
+  const config = {
+    sessionCap: 1,
+    types: [{ id: "gem", weight: 1 }],
+  };
+  const session = { match4DropCount: 0 };
+  const drops = applyMatch4LootDrops(events, config, session, () => 0);
+
+  assert.equal(drops.length, 1, "applyMatch4LootDrops drops once for match-4");
+  assert.equal(session.match4DropCount, 1, "match4DropCount increments");
+  assert.equal(drops[0].type, "gem", "drop type derived from weighted choice");
 }
 
-runTests();
+function testApplyMatch4LootDropsRespectsCap() {
+  const events = [
+    { id: 1, length: 4, cascadeIndex: 0 },
+    { id: 2, length: 4, cascadeIndex: 1 },
+  ];
+  const config = { sessionCap: 1, types: [{ id: "card", weight: 1 }] };
+  const session = { match4DropCount: 0 };
+  const drops = applyMatch4LootDrops(events, config, session, () => 0);
+
+  assert.equal(drops.length, 1, "session cap limits total drops");
+  assert.equal(session.match4DropCount, 1, "match4DropCount respects cap");
+}
+
+testPickWeightedChoice();
+testFormatLootLabel();
+testApplyMatch4LootDrops();
+testApplyMatch4LootDropsRespectsCap();

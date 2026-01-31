@@ -35,9 +35,42 @@
     "cascadeSpacingGapMultiplier": 2
   },
   "debug": {
+    "match4Test": {
+      "enabled": false,
+      "mode": "horizontal"
+    },
     "match5Test": {
       "enabled": false,
       "mode": "horizontal"
+    }
+  },
+  "loot": {
+    "match4": {
+      "enabled": true,
+      "sessionCap": 2,
+      "types": [
+        { "id": "gem", "weight": 60 },
+        { "id": "card", "weight": 40 }
+      ],
+      "toast": {
+        "enabled": true,
+        "durationMs": 1200,
+        "text": "Match-4 loot: {loot}"
+      }
+    },
+    "match5Bonus": {
+      "enabled": true,
+      "sessionCap": 3,
+      "types": [
+        { "id": "gem", "weight": 60 },
+        { "id": "card", "weight": 30 },
+        { "id": "relic", "weight": 10 }
+      ],
+      "toast": {
+        "enabled": true,
+        "durationMs": 1600,
+        "text": "Match-5 bonus: {loot}"
+      }
     }
   },
   "powerUps": {
@@ -70,22 +103,6 @@
         "radiusRatio": 0.18,
         "offsetRatio": 0.08,
         "fontScale": 0.9
-      }
-    }
-  },
-  "loot": {
-    "match5Bonus": {
-      "enabled": true,
-      "sessionCap": 3,
-      "types": [
-        { "id": "gem", "weight": 60 },
-        { "id": "card", "weight": 30 },
-        { "id": "relic", "weight": 10 }
-      ],
-      "toast": {
-        "enabled": true,
-        "durationMs": 1600,
-        "text": "Match-5 bonus: {loot}"
       }
     }
   },
