@@ -51,4 +51,4 @@ Enable activation of color clear power-ups created in earlier slices.
 - [x] Spec reviewed
 - [x] Implementation complete
 - [x] Tests added/updated
-- [ ] Docs updated
+- [x] Docs updated

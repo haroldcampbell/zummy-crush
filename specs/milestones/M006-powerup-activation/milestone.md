@@ -24,7 +24,7 @@ Enable activation of existing power-ups and add a micro-reward for first activat
 
 ## Specs
 - [x] S001 - Activate Line Clear Power-Up
-- [ ] S002 - Activate Color Clear Power-Up
+- [x] S002 - Activate Color Clear Power-Up
 - [ ] S003 - Micro-Reward: First Power-Up Activation
 - [ ] S004 - Activation Feedback (VFX Placeholder)
 
