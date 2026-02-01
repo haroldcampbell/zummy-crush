@@ -4,6 +4,15 @@
 
 Enable multiple agents to work independently without duplicating effort or conflicting changes.
 
+## Work Modes (Single vs Multi-Agent)
+
+- Canonical mode marker: `work-mode.config`.
+- Single-agent mode: no lock files required; still follow spec-first workflow.
+  - Multiple specs may be completed sequentially in one session.
+  - Each spec must use its own feature branch and PR.
+  - The user may direct completion of an entire milestone in a single session.
+- Multi-agent mode: locks are required and the kickoff checklist must be followed.
+
 ## Recommended Structure
 
 - One milestone per agent at a time.
@@ -70,8 +79,8 @@ Consumers (loot, micro-rewards) depend only on payload fields.
     - Lock files include: agent name, branch name, start time, and short intent note
 - Agents will not start working on a spec if a corresponding lock file already exists
 - Source of truth for availability:
-    - `specs/milestones.md` for milestone availability
-    - `specs/milestones/<Milestone>/milestone.md` for spec availability
+    - `docs/specs/milestones.md` for milestone availability
+    - `docs/specs/milestones/<Milestone>/milestone.md` for spec availability
 - Once an agent has completed their work, they will:
     - update the checklist for the specs and milestone
     - create sesion hand-off, commit their code to the branch, and create the PRs
@@ -108,18 +117,19 @@ Before work begins, confirm:
 
 ## Multi-Agent Kickoff Checklist
 
-1. Confirm the spec is approved and all open questions are resolved.
-2. Pull latest `main` and create a branch with the naming convention.
-3. Create lock files for the milestone/spec (include agent name, branch, start time, intent).
-4. Re-check `specs/milestones.md` and the milestone spec folder to confirm availability.
-5. Log planned scope and any constraints in the lock file or hand-off draft.
-6. Implement only the assigned spec; avoid cross-spec changes.
-7. Commit regularly (small, focused commits).
-8. Add/update tests for core logic and regressions where applicable.
-9. Write a session hand-off in `hand-offs/` before opening the PR.
-10. Ensure the worktree `origin` remote points to the GitHub repo (copy the URL from `main`).
-11. Open a PR into `main` using the git-control MCP tools and wait for explicit approval to merge.
-12. After merge approval, delete the branch and remove lock files.
+1. Confirm `work-mode.config` is set to `mode: multi`.
+2. Confirm the spec is approved and all open questions are resolved.
+3. Pull latest `main` and create a branch with the naming convention.
+4. Create lock files for the milestone/spec (include agent name, branch, start time, intent).
+5. Re-check `docs/specs/milestones.md` and the milestone spec folder to confirm availability.
+6. Log planned scope and any constraints in the lock file or hand-off draft.
+7. Implement only the assigned spec; avoid cross-spec changes.
+8. Commit regularly (small, focused commits).
+9. Add/update tests for core logic and regressions where applicable.
+10. Write a session hand-off in `docs/hand-offs/` before opening the PR.
+11. Ensure the worktree `origin` remote points to the GitHub repo (copy the URL from `main`).
+12. Open a PR into `main` using the git-control MCP tools and wait for explicit approval to merge.
+13. After merge approval, delete the branch and remove lock files.
 
 ## Stop Conditions
 

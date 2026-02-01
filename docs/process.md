@@ -2,6 +2,36 @@
 
 This process governs how we move from ideas to specs to implementation. It prioritizes safety, clarity, and incremental progress.
 
+## Work Mode Marker
+
+- At session start, set `work-mode.config` to `mode: single` or `mode: multi`.
+- If `mode: multi`, follow `docs/multi-agent-strategy.md` and use locks.
+
+## Single-Agent Mode Rules
+
+- The agent may work on multiple specs sequentially in one session.
+- Each spec must be implemented on its own feature branch and PR.
+- The user may direct the Game Designer and Game Developer roles to complete an entire milestone in a single session.
+
+## Roles (Canonical)
+
+### Expert Game Designer
+- Focus: player experience, pacing, mechanics, rewards.
+- Outputs: design notes, tuning tables, experience decisions (XDRs).
+
+### Expert Game Developer
+- Focus: implementation, correctness, performance, tooling.
+- Outputs: specs, code, tests, technical decisions (ADRs).
+
+### Expert Agile Coach
+- Focus: slicing, flow, parallelization, delivery risks.
+- Outputs: sequencing plans, risk lists, workflow improvements.
+
+## Role Declaration
+
+- Each response declares the role being used.
+- If multiple lenses are needed, split the response by role.
+
 ## Workflow (Spec-Driven)
 
 Note: This workflow is governed by `docs/multi-agent-strategy.md` for multi-agent coordination and must be followed.
@@ -57,7 +87,7 @@ Note: This workflow is governed by `docs/multi-agent-strategy.md` for multi-agen
 
 - Hand-offs are a log of completed work and decisions from a collaborative session.
 - Create a hand-off after the session concludes and just before a PR is opened. Ideally it is the last commit before the PR is created/merged. If more work is committed afterward, update the hand-off or create a new one if it represents a new session.
-- Hand-offs are stored in `hand-offs/`.
+- Hand-offs are stored in `docs/hand-offs/`.
 - Each hand-off includes: summary, completed items, next steps, decisions, risks.
 - Hand-off filename format is `yyyy-mm-dd-nn-MXXX-SYYY-<title>.md`.
   - `yyyy` = 4-digit year, `mm` = 2-digit month (01–12), `dd` = 2-digit day (01–31)
@@ -73,3 +103,10 @@ Note: This workflow is governed by `docs/multi-agent-strategy.md` for multi-agen
 - No destructive changes unless explicitly requested
 - ADRs and XDRs are immutable; changes require a new record
 - Governance decisions in `docs/governance-decisions.md` are mandatory.
+
+## Lightweight Practices
+
+- Specs before implementation; keep them small and testable.
+- Use ADRs for technical decisions and XDRs for experience decisions.
+- Add unit tests for core logic; use manual tests for UX/animation.
+- Specs must align with `docs/design-baseline.md`. If a spec needs a new UI/UX default, update the baseline first.

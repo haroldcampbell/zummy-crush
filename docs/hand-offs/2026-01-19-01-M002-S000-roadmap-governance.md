@@ -18,7 +18,7 @@
 ## Completed
 - docs/roadmap.md
 - docs/multi-agent-strategy.md
-- docs/planning-recommendations.md
+- docs/planning-recommendations.md (retired; see docs/index.md)
 - M002 specs (8x8 board, voids, loadable definitions)
 - M003 specs (power-ups v1)
 - M004 specs (loot + micro-rewards v1)

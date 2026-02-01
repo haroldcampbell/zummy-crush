@@ -2,6 +2,11 @@
 
 Purpose: Provide shared UI/UX defaults used by specs so implementation is consistent and predictable.
 
+## Decision Precedence
+
+- If there is a conflict, XDRs and Learnings override this baseline.
+- Update this baseline to reflect any new XDRs/Learnings.
+
 ## Target Viewports (Mobile-First)
 
 - Primary: 360 x 640 (Android baseline)
@@ -32,12 +37,16 @@ Purpose: Provide shared UI/UX defaults used by specs so implementation is consis
 
 - Drag-to-swap (M001)
 - Swap-back animation on invalid move
-- Selection highlight style: TBD
+- Selection highlight style: Full-tile color fill (see XDR-004)
 - Animation timings (configurable): swap 0.5s, cascade 0.5s, match resolve 0.8s
 
 ## Number Formatting
 
 - Score uses thousands separators (e.g., 12,345)
+
+## Spacing
+
+- Tile gap matches board padding (see XDR-005)
 
 ## Audio (Later Phase)
 

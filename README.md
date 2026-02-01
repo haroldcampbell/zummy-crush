@@ -31,3 +31,7 @@ node app/tests/physics-utils.test.mjs
 
 - `feature/M00X-S00Y-<short-name>` for spec work
 - `chore/M00X-closeout` for milestone documentation updates
+
+## Documentation
+
+- Start here: `docs/index.md`
