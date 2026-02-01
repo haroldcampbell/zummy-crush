@@ -2,7 +2,6 @@
 log/**
 logs/**
 *.log
-!logs/work-mode.md
 
 # OS
 .DS_Store

@@ -33,7 +33,7 @@ Ship a fun, fast, mobile-first match puzzle with the least user effort and short
 
 ## Near-Term Scope (Now)
 
-- See `docs/roadmap.md` for milestones and `specs/` for details.
+- See `docs/roadmap.md` for milestones and `docs/specs/` for details.
 - Early focus: board expansion, power-up creation, loot triggers, activation, and minimal gallery UI.
 
 ## Future Exploration (Later)

@@ -4,7 +4,7 @@ This process governs how we move from ideas to specs to implementation. It prior
 
 ## Work Mode Marker
 
-- At session start, set `logs/work-mode.md` to `mode: single` or `mode: multi`.
+- At session start, set `work-mode.config` to `mode: single` or `mode: multi`.
 - If `mode: multi`, follow `docs/multi-agent-strategy.md` and use locks.
 
 ## Single-Agent Mode Rules
@@ -87,7 +87,7 @@ Note: This workflow is governed by `docs/multi-agent-strategy.md` for multi-agen
 
 - Hand-offs are a log of completed work and decisions from a collaborative session.
 - Create a hand-off after the session concludes and just before a PR is opened. Ideally it is the last commit before the PR is created/merged. If more work is committed afterward, update the hand-off or create a new one if it represents a new session.
-- Hand-offs are stored in `hand-offs/`.
+- Hand-offs are stored in `docs/hand-offs/`.
 - Each hand-off includes: summary, completed items, next steps, decisions, risks.
 - Hand-off filename format is `yyyy-mm-dd-nn-MXXX-SYYY-<title>.md`.
   - `yyyy` = 4-digit year, `mm` = 2-digit month (01–12), `dd` = 2-digit day (01–31)

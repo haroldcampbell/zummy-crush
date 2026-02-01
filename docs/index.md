@@ -7,15 +7,15 @@ Start here to find the canonical docs and avoid duplicates.
 
 ## Roadmap + Specs
 - `docs/roadmap.md` — milestone status and sequencing.
-- `specs/milestones.md` — milestone list (mirrors roadmap).
-- `specs/milestones/` — spec details per milestone.
+- `docs/specs/milestones.md` — milestone list (mirrors roadmap).
+- `docs/specs/milestones/` — spec details per milestone.
 
 ## How We Work
 - `docs/principles.md` — non-negotiable principles.
 - `docs/process.md` — spec-driven workflow and hand-offs.
 - `docs/governance-decisions.md` — binding governance rules.
 - `docs/multi-agent-strategy.md` — multi-agent coordination and locks.
-- `logs/work-mode.md` — single vs multi-agent mode marker.
+- `work-mode.config` — single vs multi-agent mode marker.
 
 ## Design + UX
 - `docs/design-baseline.md` — UI/UX defaults.
@@ -24,6 +24,6 @@ Start here to find the canonical docs and avoid duplicates.
 - `docs/learnings.md` — implementation learnings and observations.
 
 ## Session Logs
-- `hand-offs/` — session hand-offs (one per session).
+- `docs/hand-offs/` — session hand-offs (one per session).
 - `locks/` — active work locks (multi-agent).
-- `logs/` — agent status and work-mode tracking.
+- `logs/` — agent status tracking.
