@@ -1,5 +1,7 @@
 # Milestones
 
+Note: This list mirrors `docs/roadmap.md`. Update the roadmap first.
+
 - [x] M001 - Golden Demo
 - [ ] M002 - Core Board Expansion (8x8 + voids)
 - [ ] M003 - Match-4 Slice (Power-Up + Loot + Micro-Reward)

@@ -41,8 +41,7 @@ Add a power-up created from a 5-in-a-row match.
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
 - [x] Spec reviewed
 - [x] Implementation complete
 - [x] Tests added/updated
-- [ ] Docs updated
+- [x] Docs updated
