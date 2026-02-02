@@ -18,7 +18,10 @@ import {
   formatLootLabel,
   pickWeightedChoice,
 } from "./loot-utils.mjs";
-import { shouldTriggerFirstMatch5Reward } from "./micro-reward-utils.mjs";
+import {
+  shouldTriggerFirstMatch5Reward,
+  shouldTriggerFirstPowerUpReward,
+} from "./micro-reward-utils.mjs";
 
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
@@ -79,6 +82,9 @@ const defaultConfig = {
     match5Test: {
       enabled: false,
       mode: "horizontal",
+    },
+    microRewards: {
+      repeatFirstPowerUp: false,
     },
   },
   powerUps: {
@@ -154,6 +160,15 @@ const defaultConfig = {
         text: "First Match-5!",
       },
     },
+    firstPowerUp: {
+      enabled: true,
+      cooldownMs: 500,
+      toast: {
+        enabled: true,
+        durationMs: 1600,
+        text: "First Power-Up!",
+      },
+    },
   },
 };
 
@@ -188,6 +203,8 @@ const state = {
   microRewards: {
     firstMatch5Triggered: false,
     lastFirstMatch5At: -Infinity,
+    firstPowerUpTriggered: false,
+    lastFirstPowerUpAt: -Infinity,
   },
 };
 
@@ -305,9 +322,15 @@ function getFirstMatch5RewardConfig() {
   return state.config.microRewards?.firstMatch5 || {};
 }
 
+function getFirstPowerUpRewardConfig() {
+  return state.config.microRewards?.firstPowerUp || {};
+}
+
 function resetMicroRewards() {
   state.microRewards.firstMatch5Triggered = false;
   state.microRewards.lastFirstMatch5At = -Infinity;
+  state.microRewards.firstPowerUpTriggered = false;
+  state.microRewards.lastFirstPowerUpAt = -Infinity;
 }
 
 function handleFirstMatch5Reward(events) {
@@ -329,6 +352,31 @@ function handleFirstMatch5Reward(events) {
   const toastConfig = config.toast || {};
   if (toastConfig.enabled) {
     const message = toastConfig.text || "First Match-5!";
+    showToast(message, { durationMs: toastConfig.durationMs });
+  }
+}
+
+function handleFirstPowerUpReward(events) {
+  const config = getFirstPowerUpRewardConfig();
+  if (!config.enabled) return;
+  const now = performance.now();
+  const allowRepeat = Boolean(state.config.debug?.microRewards?.repeatFirstPowerUp);
+  const shouldTrigger = shouldTriggerFirstPowerUpReward({
+    events,
+    alreadyTriggered: state.microRewards.firstPowerUpTriggered,
+    lastTriggeredAt: state.microRewards.lastFirstPowerUpAt,
+    now,
+    cooldownMs: config.cooldownMs,
+    allowRepeat,
+  });
+  if (!shouldTrigger) return;
+
+  state.microRewards.firstPowerUpTriggered = true;
+  state.microRewards.lastFirstPowerUpAt = now;
+
+  const toastConfig = config.toast || {};
+  if (toastConfig.enabled) {
+    const message = toastConfig.text || "First Power-Up!";
     showToast(message, { durationMs: toastConfig.durationMs });
   }
 }
@@ -1275,6 +1323,7 @@ async function loadConfig() {
   const lootMatch5Overrides = lootOverrides.match5Bonus || {};
   const microRewardOverrides = config.microRewards || {};
   const firstMatch5Overrides = microRewardOverrides.firstMatch5 || {};
+  const firstPowerUpOverrides = microRewardOverrides.firstPowerUp || {};
   const lootMatch4Overrides = lootOverrides.match4 || {};
   return {
     ...defaultConfig,
@@ -1296,6 +1345,10 @@ async function loadConfig() {
       match5Test: {
         ...defaultConfig.debug.match5Test,
         ...((config.debug && config.debug.match5Test) || {}),
+      },
+      microRewards: {
+        ...defaultConfig.debug.microRewards,
+        ...((config.debug && config.debug.microRewards) || {}),
       },
     },
     powerUps: {
@@ -1349,6 +1402,14 @@ async function loadConfig() {
           ...(firstMatch5Overrides.toast || {}),
         },
       },
+      firstPowerUp: {
+        ...defaultConfig.microRewards.firstPowerUp,
+        ...firstPowerUpOverrides,
+        toast: {
+          ...defaultConfig.microRewards.firstPowerUp.toast,
+          ...(firstPowerUpOverrides.toast || {}),
+        },
+      },
     },
   };
 }
@@ -1381,6 +1442,7 @@ async function init() {
   state.matchEventListeners.add(handleMatch4LootDrops);
   state.matchEventListeners.add(handleMatch5LootBonus);
   state.matchEventListeners.add(handleFirstMatch5Reward);
+  state.matchEventListeners.add(handleFirstPowerUpReward);
   document.documentElement.style.setProperty(
     "--board-max-width",
     `${state.config.board.maxWidth}px`
