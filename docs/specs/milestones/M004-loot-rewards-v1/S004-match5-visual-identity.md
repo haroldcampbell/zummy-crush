@@ -23,6 +23,10 @@ Match-5 power-ups need a distinct, stronger visual identity than match-4.
 
 ## UX Notes
 - Consider brighter fill, icon, or border treatment
+- Recommendation: brighter fill + higher-contrast stroke + distinct badge text ("X5" or "5") to keep the style consistent but clearly stronger than match-4.
+- Apply to match-5 power-up types (currently color-clear), so future match-5 variants inherit the tiered style.
+- Prefer config-driven overrides to keep the change reversible without code changes.
+- Favor a warm gold/highlight palette with strong contrast for readability on small tiles.
 
 ## Data / State
 - Visual variant or class for match-5 power-up tiles
@@ -38,7 +42,7 @@ Match-5 power-ups need a distinct, stronger visual identity than match-4.
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

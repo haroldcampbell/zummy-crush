@@ -106,6 +106,22 @@
         "radiusRatio": 0.18,
         "offsetRatio": 0.08,
         "fontScale": 0.9
+      },
+      "tiers": {
+        "match5": {
+          "fill": "#ffe2a1",
+          "stroke": "#b05a0b",
+          "textColor": "#2a1b09",
+          "badge": {
+            "fill": "#b05a0b",
+            "stroke": "#2a1b09",
+            "text": "X5",
+            "textColor": "#fff8e6",
+            "radiusRatio": 0.2,
+            "offsetRatio": 0.06,
+            "fontScale": 0.95
+          }
+        }
       }
     }
   },
