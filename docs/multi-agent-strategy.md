@@ -53,7 +53,7 @@ Consumers (loot, micro-rewards) depend only on payload fields.
 ### Risks
 
 - Event contract instability can create merge conflicts
-- Shared files (e.g., `app/client/main.js`) can become hotspots if modules are not split
+- Shared files (e.g., `app/ideas/<IDEA-ID>/client/main.js`) can become hotspots if modules are not split
 
 ## Work Allocation Rules
 
@@ -79,8 +79,8 @@ Consumers (loot, micro-rewards) depend only on payload fields.
     - Lock files include: agent name, branch name, start time, and short intent note
 - Agents will not start working on a spec if a corresponding lock file already exists
 - Source of truth for availability:
-    - `docs/specs/milestones.md` for milestone availability
-    - `docs/specs/milestones/<Milestone>/milestone.md` for spec availability
+    - `docs/specs/ideas/<IDEA-ID>/milestones.md` for milestone availability
+    - `docs/specs/ideas/<IDEA-ID>/milestones/<Milestone>/milestone.md` for spec availability
 - Once an agent has completed their work, they will:
     - update the checklist for the specs and milestone
     - create sesion hand-off, commit their code to the branch, and create the PRs
@@ -102,7 +102,7 @@ Consumers (loot, micro-rewards) depend only on payload fields.
 ## Conflict Avoidance
 
 - Specs should target distinct files/modules when possible.
-- Shared files (e.g., `app/client/main.js`) should be edited by one agent at a time.
+- Shared files (e.g., `app/ideas/<IDEA-ID>/client/main.js`) should be edited by one agent at a time.
 - If shared file edits are needed, coordinate by creating a stub PR and locking the file for that agent.
 
 ## Spec Readiness Checklist
@@ -121,12 +121,12 @@ Before work begins, confirm:
 2. Confirm the spec is approved and all open questions are resolved.
 3. Pull latest `main` and create a branch with the naming convention.
 4. Create lock files for the milestone/spec (include agent name, branch, start time, intent).
-5. Re-check `docs/specs/milestones.md` and the milestone spec folder to confirm availability.
+5. Re-check `docs/specs/ideas/<IDEA-ID>/milestones.md` and the milestone spec folder to confirm availability.
 6. Log planned scope and any constraints in the lock file or hand-off draft.
 7. Implement only the assigned spec; avoid cross-spec changes.
 8. Commit regularly (small, focused commits).
 9. Add/update tests for core logic and regressions where applicable.
-10. Write a session hand-off in `docs/hand-offs/` before opening the PR.
+10. Write a session hand-off in `docs/ideas/<IDEA-ID>/hand-offs/` before opening the PR.
 11. Ensure the worktree `origin` remote points to the GitHub repo (copy the URL from `main`).
 12. Open a PR into `main` using the git-control MCP tools and wait for explicit approval to merge.
 13. After merge approval, delete the branch and remove lock files.

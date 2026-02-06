@@ -35,4 +35,4 @@
 - Agents must comply with `docs/process.md`, `docs/principles.md`, and `docs/governance-decisions.md`.
 - At the start of each session, review the `docs`.
 - Ensure that you are aware of the guardrails that shouldn't be violated.
-- Review `docs/specs/milestones.md` and the most recent session hand-off in `docs/hand-offs` when trying to understand where to start next: recommend the most likely milestone or specs to work on next.
+- Review `docs/specs/ideas/<IDEA-ID>/milestones.md` and the most recent session hand-off in `docs/ideas/<IDEA-ID>/hand-offs` when trying to understand where to start next: recommend the most likely milestone or specs to work on next.

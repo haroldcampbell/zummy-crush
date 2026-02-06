@@ -3,7 +3,7 @@
 ## Principles Reference
 
 - Adhere to `docs/principles.md`.
-- Align with `docs/design-baseline.md`; update the baseline if new UI/UX defaults are needed.
+- Align with `docs/ideas/<IDEA-ID>/design-baseline.md`; update the baseline if new UI/UX defaults are needed.
 
 ## Problem Statement
 

@@ -87,7 +87,7 @@ Note: This workflow is governed by `docs/multi-agent-strategy.md` for multi-agen
 
 - Hand-offs are a log of completed work and decisions from a collaborative session.
 - Create a hand-off after the session concludes and just before a PR is opened. Ideally it is the last commit before the PR is created/merged. If more work is committed afterward, update the hand-off or create a new one if it represents a new session.
-- Hand-offs are stored in `docs/hand-offs/`.
+- Hand-offs are stored in `docs/ideas/<IDEA-ID>/hand-offs/`.
 - Each hand-off includes: summary, completed items, next steps, decisions, risks.
 - Hand-off filename format is `yyyy-mm-dd-nn-MXXX-SYYY-<title>.md`.
   - `yyyy` = 4-digit year, `mm` = 2-digit month (01–12), `dd` = 2-digit day (01–31)
@@ -109,4 +109,4 @@ Note: This workflow is governed by `docs/multi-agent-strategy.md` for multi-agen
 - Specs before implementation; keep them small and testable.
 - Use ADRs for technical decisions and XDRs for experience decisions.
 - Add unit tests for core logic; use manual tests for UX/animation.
-- Specs must align with `docs/design-baseline.md`. If a spec needs a new UI/UX default, update the baseline first.
+- Specs must align with `docs/ideas/<IDEA-ID>/design-baseline.md`. If a spec needs a new UI/UX default, update the baseline first.

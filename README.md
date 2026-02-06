@@ -5,7 +5,7 @@
 From the repo root:
 
 ```sh
-cd app
+cd app/ideas/I001
 python3 -m http.server 5173
 ```
 
@@ -16,15 +16,15 @@ Then open:
 Notes:
 
 - The client expects `/assets` to be available at the same server root as `/client`.
-- Serving from `app/` ensures `client/` and `assets/` resolve correctly.
+- Serving from `app/ideas/I001/` ensures `client/` and `assets/` resolve correctly.
 
 ## Tests
 
 From the repo root:
 
 ```sh
-node app/tests/board-logic.test.mjs
-node app/tests/physics-utils.test.mjs
+node app/ideas/I001/tests/board-logic.test.mjs
+node app/ideas/I001/tests/physics-utils.test.mjs
 ```
 
 ## Branching Convention

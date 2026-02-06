@@ -4,8 +4,8 @@ This document captures non‑negotiable governance rules. These are enforced lik
 
 ## GD-001: Roadmap Scope Control
 
-- Agents must not create new milestones or specs beyond those listed in `docs/roadmap.md` without explicit user approval.
-- If new milestones/specs are desired, update `docs/roadmap.md` first after user approval.
+- Agents must not create new milestones or specs beyond those listed in `docs/ideas/I001/roadmap.md` without explicit user approval.
+- If new milestones/specs are desired, update `docs/ideas/I001/roadmap.md` first after user approval.
 
 ## GD-002: PR Merge Approval
 
