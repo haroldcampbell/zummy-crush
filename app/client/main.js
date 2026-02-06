@@ -22,6 +22,7 @@ import {
   shouldTriggerFirstMatch5Reward,
   shouldTriggerFirstPowerUpReward,
 } from "./micro-reward-utils.mjs";
+import { resolvePowerUpStyle } from "./powerup-style-utils.mjs";
 
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
@@ -118,6 +119,22 @@ const defaultConfig = {
         radiusRatio: 0.18,
         offsetRatio: 0.08,
         fontScale: 0.9,
+      },
+      tiers: {
+        match5: {
+          fill: "#ffe2a1",
+          stroke: "#b05a0b",
+          textColor: "#2a1b09",
+          badge: {
+            fill: "#b05a0b",
+            stroke: "#2a1b09",
+            text: "X5",
+            textColor: "#fff8e6",
+            radiusRatio: 0.2,
+            offsetRatio: 0.06,
+            fontScale: 0.95,
+          },
+        },
       },
     },
   },
@@ -387,7 +404,11 @@ function isColorClearTile(tile) {
 function getPowerUpStyle(tile) {
   if (!tile || !tile.powerUp) return null;
   const palette = state.config.powerUps || {};
-  return palette[tile.powerUp.type] || null;
+  const baseStyle = palette[tile.powerUp.type] || null;
+  if (!baseStyle) return null;
+  const tierKey = tile.powerUp.tier;
+  const tierStyle = tierKey ? baseStyle.tiers?.[tierKey] : null;
+  return resolvePowerUpStyle(baseStyle, tierStyle);
 }
 
 function drawColorClearBadge(tile, dx, dy, size, style) {
@@ -1092,7 +1113,7 @@ async function resolveMatchesAnimated({ swapOrigin = null, swapDestination = nul
       clearSet.delete(key);
       const tile = state.grid[spawnCell.row][spawnCell.col];
       if (tile) {
-        tile.powerUp = { type: "color-clear" };
+        tile.powerUp = { type: "color-clear", tier: "match5" };
       }
     }
     for (const run of runs) {
@@ -1319,6 +1340,8 @@ async function loadConfig() {
     powerUpOverrides["color-clear"] || powerUpOverrides.colorClear || {};
   const lineClearOverrides =
     powerUpOverrides["line-clear"] || powerUpOverrides.lineClear || {};
+  const colorClearTierOverrides = colorClearOverrides.tiers || {};
+  const defaultColorClearTiers = defaultConfig.powerUps["color-clear"].tiers || {};
   const lootOverrides = config.loot || {};
   const lootMatch5Overrides = lootOverrides.match5Bonus || {};
   const microRewardOverrides = config.microRewards || {};
@@ -1368,6 +1391,19 @@ async function loadConfig() {
         badge: {
           ...defaultConfig.powerUps["color-clear"].badge,
           ...(colorClearOverrides.badge || {}),
+        },
+        tiers: {
+          ...defaultColorClearTiers,
+          ...colorClearTierOverrides,
+          match5: {
+            ...(defaultColorClearTiers.match5 || {}),
+            ...((colorClearTierOverrides && colorClearTierOverrides.match5) || {}),
+            badge: {
+              ...(defaultColorClearTiers.match5?.badge || {}),
+              ...((colorClearTierOverrides.match5 && colorClearTierOverrides.match5.badge) ||
+                {}),
+            },
+          },
         },
       },
     },
