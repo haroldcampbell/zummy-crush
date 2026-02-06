@@ -18,6 +18,7 @@ This roadmap is a milestone-based checklist. Each milestone links to its specs.
   - Specs: `docs/specs/milestones/M004-loot-rewards-v1/`
 
 - [ ] M005 - Polish Pass
+  - Specs: `docs/specs/milestones/M005-polish-pass/`
   - Note: Review tile sizes for readability and feel
 
 - [ ] M006 - Power-Up Activation Slice + Micro-Reward
