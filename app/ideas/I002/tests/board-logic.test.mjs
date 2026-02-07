@@ -70,6 +70,12 @@ const runs = findMatchRuns(matchGrid);
 assert.equal(runs.length, 1, "findMatchRuns returns a single run for simple match");
 assert.equal(runs[0].length, 3, "findMatchRuns tracks run length");
 
+const match4Grid = [
+  [{ typeId: "A" }, { typeId: "A" }, { typeId: "A" }, { typeId: "A" }],
+];
+const runs4 = findMatchRuns(match4Grid);
+assert.equal(runs4[0].length, 4, "findMatchRuns supports length-4 runs");
+
 const cleared = clearMatches(matchGrid, matches);
 assert.equal(cleared[0][0], null, "clearMatches removes matched tiles");
 

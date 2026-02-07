@@ -42,6 +42,6 @@ Match-4 and match-5 should create power-up tiles to reward the player.
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

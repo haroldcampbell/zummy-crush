@@ -42,6 +42,6 @@ Matching power-ups together should create a larger reward moment.
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

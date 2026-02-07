@@ -42,6 +42,6 @@ Power-up tiles should activate when they are part of a match, clearing additiona
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

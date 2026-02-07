@@ -42,6 +42,6 @@ Power-up behavior and visuals should be tunable during playtests.
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

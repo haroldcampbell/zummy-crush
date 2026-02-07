@@ -137,5 +137,29 @@
       "ruby": 30,
       "jade": 40
     }
+  },
+  "powerUps": {
+    "enabled": true,
+    "match4": {
+      "enabled": true,
+      "type": "line-clear"
+    },
+    "match5": {
+      "enabled": true,
+      "type": "color-clear"
+    },
+    "combo": {
+      "enabled": true,
+      "minCount": 2
+    },
+    "mega": {
+      "enabled": true,
+      "clearMode": "board"
+    },
+    "visuals": {
+      "lineClearBadge": "L",
+      "colorClearBadge": "C",
+      "megaBadge": "M"
+    }
   }
 }

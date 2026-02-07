@@ -233,7 +233,10 @@ function drawTile(x, y, size, tile, config) {
     ctx.fillRect(x, y, size, size);
     return;
   }
-  const variantMode = config.debug.forceVariant || tile.variant || config.tile.variant;
+  const variantMode =
+    config.debug.forceVariant ||
+    (tile.powerUp ? "powerup" : tile.variant) ||
+    config.tile.variant;
   const tileSet = getActiveTileSet(config);
   const type = tileSet.types.find((entry) => entry.id === tile.typeId) || tileSet.types[0];
   const iconScale = config.tile.iconScale;
@@ -253,7 +256,17 @@ function drawTile(x, y, size, tile, config) {
   drawShape(type.shape, centerX, centerY, iconSize / 2, type.fill, type.stroke);
 
   if (variantMode === "powerup") {
-    drawVariantFrame(x, y, size, config.variantStyle);
+    const badgeText = getPowerUpBadgeText(tile, config);
+    const style = badgeText
+      ? {
+          ...config.variantStyle,
+          badge: {
+            ...config.variantStyle.badge,
+            text: badgeText,
+          },
+        }
+      : config.variantStyle;
+    drawVariantFrame(x, y, size, style);
   }
   ctx.restore();
 }
@@ -708,6 +721,15 @@ function scoreMatches(runs) {
   return points;
 }
 
+function getPowerUpBadgeText(tile, config) {
+  const visuals = config.powerUps?.visuals || {};
+  if (!tile.powerUp) return null;
+  if (tile.powerUp.type === "line-clear") return visuals.lineClearBadge || "L";
+  if (tile.powerUp.type === "color-clear") return visuals.colorClearBadge || "C";
+  if (tile.powerUp.type === "mega") return visuals.megaBadge || "M";
+  return null;
+}
+
 function computeTapScale(now, tapStart, durationMs, scaleDown) {
   if (!tapStart || durationMs <= 0 || scaleDown <= 0) return 1;
   const elapsed = now - tapStart;
@@ -776,10 +798,113 @@ async function resolveCascade(matchSet) {
   const tileTypes = getActiveTileSet(state.config).types;
   const variant = state.config.tile.variant;
   const runs = findMatchRuns(state.grid);
+  const powerUps = state.config.powerUps || {};
+  const clearSet = new Set(matchSet);
+  const reservedSpawnCells = new Set();
+  const powerUpCells = [];
+  const runOrientation = new Map();
+
+  runs.forEach((run) => {
+    run.cells.forEach((cell) => {
+      const key = `${cell.row},${cell.col}`;
+      if (!runOrientation.has(key)) {
+        runOrientation.set(key, run.orientation);
+      }
+    });
+  });
+
+  matchSet.forEach((key) => {
+    const [row, col] = key.split(",").map(Number);
+    const tile = state.grid[row]?.[col];
+    if (tile?.powerUp) powerUpCells.push({ row, col, tile });
+  });
+
+  const comboMin = powerUps.combo?.minCount ?? 2;
+  const comboTriggered =
+    powerUps.combo?.enabled !== false &&
+    powerUps.mega?.enabled !== false &&
+    powerUpCells.length >= comboMin;
+  if (comboTriggered) {
+    const spawn = powerUpCells[0];
+    const spawnKey = `${spawn.row},${spawn.col}`;
+    const tile = state.grid[spawn.row][spawn.col];
+    if (tile) {
+      tile.powerUp = { type: "mega" };
+      tile.variant = "powerup";
+      reservedSpawnCells.add(spawnKey);
+      clearSet.delete(spawnKey);
+    }
+  }
+
+  const selectSpawnCell = (run) => run.cells[Math.floor(run.cells.length / 2)];
+
+  runs.forEach((run) => {
+    if (run.length === 4 && powerUps.match4?.enabled !== false) {
+      const spawnCell = selectSpawnCell(run);
+      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
+      if (!reservedSpawnCells.has(spawnKey)) {
+        const tile = state.grid[spawnCell.row][spawnCell.col];
+        if (tile) {
+          tile.powerUp = { type: powerUps.match4?.type || "line-clear" };
+          tile.variant = "powerup";
+          reservedSpawnCells.add(spawnKey);
+          clearSet.delete(spawnKey);
+        }
+      }
+    }
+    if (run.length === 5 && powerUps.match5?.enabled !== false) {
+      const spawnCell = selectSpawnCell(run);
+      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
+      if (!reservedSpawnCells.has(spawnKey)) {
+        const tile = state.grid[spawnCell.row][spawnCell.col];
+        if (tile) {
+          tile.powerUp = { type: powerUps.match5?.type || "color-clear" };
+          tile.variant = "powerup";
+          reservedSpawnCells.add(spawnKey);
+          clearSet.delete(spawnKey);
+        }
+      }
+    }
+  });
+
+  if (!comboTriggered && powerUps.enabled !== false) {
+    powerUpCells.forEach(({ row, col, tile }) => {
+      const key = `${row},${col}`;
+      if (!clearSet.has(key)) return;
+      if (tile.powerUp?.type === "line-clear") {
+        const orientation = runOrientation.get(key) || "row";
+        if (orientation === "row") {
+          for (let c = 0; c < state.cols; c += 1) {
+            clearSet.add(`${row},${c}`);
+          }
+        } else {
+          for (let r = 0; r < state.rows; r += 1) {
+            clearSet.add(`${r},${col}`);
+          }
+        }
+      } else if (tile.powerUp?.type === "color-clear") {
+        for (let r = 0; r < state.rows; r += 1) {
+          for (let c = 0; c < state.cols; c += 1) {
+            const cell = state.grid[r][c];
+            if (cell?.typeId === tile.typeId) {
+              clearSet.add(`${r},${c}`);
+            }
+          }
+        }
+      } else if (tile.powerUp?.type === "mega") {
+        for (let r = 0; r < state.rows; r += 1) {
+          for (let c = 0; c < state.cols; c += 1) {
+            clearSet.add(`${r},${c}`);
+          }
+        }
+      }
+    });
+  }
+
   state.score += scoreMatches(runs);
   updateScoreDisplay();
   await delay(matchDelay);
-  state.grid = clearMatches(state.grid, matchSet);
+  state.grid = clearMatches(state.grid, clearSet);
   drawGrid();
   await delay(cascadeDelay);
   const preCollapsePositions = capturePositions(state.grid);
@@ -834,7 +959,13 @@ function buildExportState() {
     cascade: { ...state.cascade },
     grid: state.grid.map((row) =>
       row.map((cell) =>
-        cell && cell.typeId ? { typeId: cell.typeId, variant: cell.variant } : null
+        cell && cell.typeId
+          ? {
+              typeId: cell.typeId,
+              variant: cell.variant,
+              powerUp: cell.powerUp || null,
+            }
+          : null
       )
     ),
     config: {

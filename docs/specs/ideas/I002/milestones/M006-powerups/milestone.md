@@ -28,11 +28,11 @@ Introduce match-4 and match-5 power-up tiles that are color-specific and create 
 
 ## Specs
 
-- [ ] S001 - Power-Up Tile Types + Visual Markers
-- [ ] S002 - Match-4/5 Power-Up Creation Rules
-- [ ] S003 - Power-Up Activation (Line/Color Clear)
-- [ ] S004 - Power-Up Combo -> Mega Power-Up
-- [ ] S005 - Configurable Power-Up Tuning
+- [x] S001 - Power-Up Tile Types + Visual Markers
+- [x] S002 - Match-4/5 Power-Up Creation Rules
+- [x] S003 - Power-Up Activation (Line/Color Clear)
+- [x] S004 - Power-Up Combo -> Mega Power-Up
+- [x] S005 - Configurable Power-Up Tuning
 
 ## Dependencies
 
