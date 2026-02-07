@@ -416,13 +416,22 @@ function drawActiveLine(active) {
   const axis = active.axis;
   const index = active.index;
   const offsetPx = active.offsetPx;
+  const friction = state.config.input?.dragFriction || {};
+  const frictionEnabled = friction.enabled !== false;
+  const maxTiles = friction.maxTiles ?? 1.5;
+  const maxPx = friction.maxPx ?? 0;
+  const normalized = Math.min(Math.abs(offsetPx) / (cell * maxTiles), 1);
+  const magnitude = frictionEnabled ? maxPx * normalized : 0;
+  const direction = Math.sign(offsetPx);
 
   if (axis === "row") {
     const total = state.cols * cell;
     for (let c = 0; c < state.cols; c += 1) {
       const base = c * cell;
+      const t = state.cols > 1 ? c / (state.cols - 1) - 0.5 : 0;
+      const frictionShift = -direction * t * magnitude * 2;
       const wrapped = ((base + offsetPx) % total + total) % total;
-      const x = originX + wrapped;
+      const x = originX + wrapped + frictionShift;
       const y = originY + index * cell;
       drawTile(x, y, state.config.board.tileSize, state.grid[index][c], state.config);
     }
@@ -430,9 +439,11 @@ function drawActiveLine(active) {
     const total = state.rows * cell;
     for (let r = 0; r < state.rows; r += 1) {
       const base = r * cell;
+      const t = state.rows > 1 ? r / (state.rows - 1) - 0.5 : 0;
+      const frictionShift = -direction * t * magnitude * 2;
       const wrapped = ((base + offsetPx) % total + total) % total;
       const x = originX + index * cell;
-      const y = originY + wrapped;
+      const y = originY + wrapped + frictionShift;
       drawTile(x, y, state.config.board.tileSize, state.grid[r][index], state.config);
     }
   }

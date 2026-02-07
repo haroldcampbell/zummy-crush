@@ -9,7 +9,12 @@
   },
   "input": {
     "dragThresholdPx": 10,
-    "snapMs": 160
+    "snapMs": 160,
+    "dragFriction": {
+      "enabled": true,
+      "maxPx": 6,
+      "maxTiles": 1.5
+    }
   },
   "tile": {
     "iconScale": 0.78,

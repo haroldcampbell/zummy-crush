@@ -38,6 +38,7 @@ Row/column rotation feels rigid; a subtle spacing shift can sell friction and di
 ## Notes
 
 - Assumption: Implemented as a render-only offset without changing grid state.
+- Config: `input.dragFriction` with `enabled`, `maxPx` (px), and `maxTiles` (tiles).
 
 ## Definition of Done (DoD)
 
