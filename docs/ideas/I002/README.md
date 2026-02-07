@@ -4,11 +4,28 @@ This folder contains the idea-scoped docs for I002.
 
 ## Run
 
-TBD (prototype not yet implemented).
+From repo root:
+
+```sh
+cd app/ideas/I002
+python3 -m http.server 5173
+```
+
+Then open:
+
+- http://localhost:5173/client/
+
+Notes:
+
+- The client expects /assets to be available at the same server root as /client.
 
 ## Tests
 
-TBD.
+From repo root:
+
+```sh
+node app/ideas/I002/tests/board-logic.test.mjs
+```
 
 ## Docs
 

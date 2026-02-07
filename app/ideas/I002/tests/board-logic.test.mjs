@@ -7,6 +7,7 @@ import {
   clearMatches,
   collapseGrid,
   refillGrid,
+  createTile,
 } from "../client/board-logic.mjs";
 
 const rowGrid = [
@@ -74,3 +75,6 @@ const refilled = refillGrid(collapsed, [{ id: "X" }]);
 assert.ok(refilled[0][0], "refillGrid fills empty cells");
 
 console.log("board-logic match and gravity tests passed");
+
+const variantTile = createTile([{ id: "Z" }], { variant: "powerup" });
+assert.equal(variantTile.variant, "powerup", "createTile respects variant override");

@@ -31,6 +31,11 @@ We need to tune readability quickly during playtests without code changes.
 
 - Capture preferred settings after a quick playtest
 
+## Notes
+
+- Assumption: Toggles are handled via config file edits (no settings UI yet).
+- Assumption: Tile-set variant switching is done via `tileSet.active` in config.
+
 ## Data / State
 
 - Tile render config
@@ -46,6 +51,6 @@ We need to tune readability quickly during playtests without code changes.
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

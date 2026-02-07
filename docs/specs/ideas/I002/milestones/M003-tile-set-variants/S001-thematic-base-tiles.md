@@ -32,6 +32,11 @@ I002 needs a thematic tile identity distinct from letters, while keeping readabi
 - Choose icons with distinct silhouettes
 - Avoid relying solely on color for differentiation
 
+## Notes
+
+- Assumption: Initial tile sets use simple geometric icons (runes/gems) to validate readability.
+- Assumption: Exactly four base types remain fixed for early playtests.
+
 ## Data / State
 
 - Tile type enum (4 base types)
@@ -47,6 +52,6 @@ I002 needs a thematic tile identity distinct from letters, while keeping readabi
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

@@ -26,9 +26,9 @@ Introduce a thematic 4-tile set and visual variants for power-ups to support pla
 
 ## Specs
 
-- [ ] S001 - Thematic Base Tile Set (4 Types)
-- [ ] S002 - Power-Up Variant Visuals
-- [ ] S003 - Readability Pass + Config Toggles
+- [x] S001 - Thematic Base Tile Set (4 Types)
+- [x] S002 - Power-Up Variant Visuals
+- [x] S003 - Readability Pass + Config Toggles
 
 ## Dependencies
 

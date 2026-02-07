@@ -30,6 +30,11 @@ Power-up variants should be visually distinct while still tied to their base til
 
 - Keep a consistent treatment across all variants for clarity
 
+## Notes
+
+- Assumption: Variant visuals are defined as frames + badges; no behavior changes yet.
+- Assumption: Variant rendering is toggled via config for readability testing.
+
 ## Data / State
 
 - Variant style config per base tile type
@@ -45,6 +50,6 @@ Power-up variants should be visually distinct while still tied to their base til
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated
