@@ -31,6 +31,11 @@ After matches clear, tiles should fall and refill to keep the loop intact.
 
 - Keep cascade timing similar to I001 for readability
 
+## Notes
+
+- Assumption: I002 adopts bottom-first cascades and no-overlap behavior (aligned with I001 XDR-002).
+- Assumption: Spawn only after space opens (aligned with I001 XDR-003).
+
 ## Data / State
 
 - Empty cell tracking per column
@@ -46,6 +51,6 @@ After matches clear, tiles should fall and refill to keep the loop intact.
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

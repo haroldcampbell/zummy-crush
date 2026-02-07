@@ -96,6 +96,6 @@
     "forceVariant": null
   },
   "features": {
-    "matchesEnabled": false
+    "matchesEnabled": true
   }
 }

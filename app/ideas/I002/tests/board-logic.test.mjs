@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { rotateRow, rotateCol, applyRotation } from "../client/board-logic.mjs";
+import {
+  rotateRow,
+  rotateCol,
+  applyRotation,
+  findMatches,
+  clearMatches,
+  collapseGrid,
+  refillGrid,
+} from "../client/board-logic.mjs";
 
 const rowGrid = [
   [
@@ -46,3 +54,23 @@ assert.deepEqual(
 );
 
 console.log("board-logic rotation tests passed");
+
+const matchGrid = [
+  [{ typeId: "A" }, { typeId: "A" }, { typeId: "A" }],
+  [{ typeId: "B" }, { typeId: "C" }, { typeId: "D" }],
+  [{ typeId: "B" }, { typeId: "C" }, { typeId: "D" }],
+];
+
+const matches = findMatches(matchGrid);
+assert.equal(matches.size, 3, "findMatches detects horizontal runs");
+
+const cleared = clearMatches(matchGrid, matches);
+assert.equal(cleared[0][0], null, "clearMatches removes matched tiles");
+
+const collapsed = collapseGrid(cleared);
+assert.equal(collapsed[2][0]?.typeId, "B", "collapseGrid drops tiles down");
+
+const refilled = refillGrid(collapsed, [{ id: "X" }]);
+assert.ok(refilled[0][0], "refillGrid fills empty cells");
+
+console.log("board-logic match and gravity tests passed");
