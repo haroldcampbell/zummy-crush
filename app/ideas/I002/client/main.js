@@ -354,6 +354,7 @@ function drawGrid() {
   const { cell, boardWidth, boardHeight } = getBoardMetrics();
   const { x: originX, y: originY } = boardOrigin();
   const animatedTiles = state.animation?.tileIndex || new Map();
+  const tilesToDraw = [];
 
   ctx.fillStyle = state.config.render.background;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -373,7 +374,7 @@ function drawGrid() {
       if (tile && animatedTiles.has(tile)) continue;
       const x = originX + c * cell;
       const y = originY + r * cell;
-      drawTile(x, y, state.config.board.tileSize, tile, state.config);
+      if (tile) tilesToDraw.push({ tile, x, y });
     }
   }
 
@@ -392,9 +393,25 @@ function drawGrid() {
       const progress = state.animation.progresses[entry.index] ?? 0;
       const x = entry.from.x + (entry.to.x - entry.from.x) * progress;
       const y = entry.from.y + (entry.to.y - entry.from.y) * progress;
-      drawTile(x, y, state.config.board.tileSize, tile, state.config);
+      tilesToDraw.push({ tile, x, y });
     });
   }
+
+  const offsets = computeRepulsionOffsets(
+    tilesToDraw,
+    state.config.board.tileSize,
+    state.config.physics
+  );
+  tilesToDraw.forEach((entry) => {
+    const offset = offsets.get(entry.tile) || { x: 0, y: 0 };
+    drawTile(
+      entry.x + offset.x,
+      entry.y + offset.y,
+      state.config.board.tileSize,
+      entry.tile,
+      state.config
+    );
+  });
 }
 
 function drawLineHighlight(axis, index) {
@@ -421,15 +438,17 @@ function drawActiveLine(active) {
   const maxTiles = friction.maxTiles ?? 1.5;
   const maxPx = friction.maxPx ?? 0;
   const normalized = Math.min(Math.abs(offsetPx) / (cell * maxTiles), 1);
-  const magnitude = frictionEnabled ? maxPx * normalized : 0;
+  const maxShift = Math.min(maxPx, state.config.board.gap * 0.4);
+  const magnitude = frictionEnabled ? maxShift * normalized : 0;
   const direction = Math.sign(offsetPx);
 
   if (axis === "row") {
     const total = state.cols * cell;
     for (let c = 0; c < state.cols; c += 1) {
       const base = c * cell;
-      const t = state.cols > 1 ? c / (state.cols - 1) - 0.5 : 0;
-      const frictionShift = -direction * t * magnitude * 2;
+      const t = state.cols > 1 ? c / (state.cols - 1) : 0.5;
+      const wave = Math.sin((t - 0.5) * Math.PI);
+      const frictionShift = -direction * wave * magnitude;
       const wrapped = ((base + offsetPx) % total + total) % total;
       const x = originX + wrapped + frictionShift;
       const y = originY + index * cell;
@@ -439,8 +458,9 @@ function drawActiveLine(active) {
     const total = state.rows * cell;
     for (let r = 0; r < state.rows; r += 1) {
       const base = r * cell;
-      const t = state.rows > 1 ? r / (state.rows - 1) - 0.5 : 0;
-      const frictionShift = -direction * t * magnitude * 2;
+      const t = state.rows > 1 ? r / (state.rows - 1) : 0.5;
+      const wave = Math.sin((t - 0.5) * Math.PI);
+      const frictionShift = -direction * wave * magnitude;
       const wrapped = ((base + offsetPx) % total + total) % total;
       const x = originX + index * cell;
       const y = originY + wrapped + frictionShift;
@@ -690,6 +710,55 @@ function computeTapScale(now, tapStart, durationMs, scaleDown) {
   if (elapsed >= durationMs) return 1;
   const progress = Math.min(Math.max(elapsed / durationMs, 0), 1);
   return 1 - scaleDown * (1 - progress);
+}
+
+function computeRepulsionOffsets(entries, tileSize, physics = {}) {
+  const offsets = new Map();
+  entries.forEach((entry) => offsets.set(entry.tile, { x: 0, y: 0 }));
+  if (!physics.enabled) return offsets;
+
+  const repulsion = physics.repulsion || { radius: 0, strength: 0 };
+  const effectiveRadius = tileSize + repulsion.radius;
+  const maxOffset = Math.max(repulsion.strength, 0);
+
+  for (let i = 0; i < entries.length; i += 1) {
+    for (let j = i + 1; j < entries.length; j += 1) {
+      const a = entries[i];
+      const b = entries[j];
+      const ax = a.x + tileSize / 2;
+      const ay = a.y + tileSize / 2;
+      const bx = b.x + tileSize / 2;
+      const by = b.y + tileSize / 2;
+      const dx = ax - bx;
+      const dy = ay - by;
+      const dist = Math.hypot(dx, dy);
+      if (dist === 0) continue;
+      const overlap = effectiveRadius - dist;
+      if (overlap <= 0) continue;
+
+      const strength = repulsion.strength;
+      const push = (overlap / effectiveRadius) * strength;
+      const nx = dx / dist;
+      const ny = dy / dist;
+      const offsetA = offsets.get(a.tile);
+      const offsetB = offsets.get(b.tile);
+      offsetA.x += nx * push;
+      offsetA.y += ny * push;
+      offsetB.x -= nx * push;
+      offsetB.y -= ny * push;
+    }
+  }
+
+  for (const [tile, offset] of offsets.entries()) {
+    const magnitude = Math.hypot(offset.x, offset.y);
+    if (magnitude > maxOffset && magnitude > 0) {
+      const scale = maxOffset / magnitude;
+      offset.x *= scale;
+      offset.y *= scale;
+    }
+    offsets.set(tile, offset);
+  }
+  return offsets;
 }
 
 function delay(ms) {
