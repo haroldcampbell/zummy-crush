@@ -429,27 +429,32 @@ function startCascadeIfNeeded() {
 }
 
 function resolveCascade(matchSet) {
+  const animations = state.config.animations || {};
+  const matchDelay = animations.matchResolveMs ?? 120;
+  const cascadeDelay = animations.cascadeMs ?? 180;
   const tileTypes = getActiveTileSet(state.config).types;
   const variant = state.config.tile.variant;
-  state.grid = clearMatches(state.grid, matchSet);
-  drawGrid();
   setTimeout(() => {
-    state.grid = collapseGrid(state.grid);
+    state.grid = clearMatches(state.grid, matchSet);
     drawGrid();
     setTimeout(() => {
-      state.grid = refillGrid(state.grid, tileTypes, { variant });
+      state.grid = collapseGrid(state.grid);
       drawGrid();
-      updateStateExport();
-      const nextMatches = findMatches(state.grid);
-      if (nextMatches.size > 0) {
-        state.cascade.index += 1;
-        resolveCascade(nextMatches);
-      } else {
-        state.cascade.active = false;
+      setTimeout(() => {
+        state.grid = refillGrid(state.grid, tileTypes, { variant });
+        drawGrid();
         updateStateExport();
-      }
-    }, 180);
-  }, 180);
+        const nextMatches = findMatches(state.grid);
+        if (nextMatches.size > 0) {
+          state.cascade.index += 1;
+          resolveCascade(nextMatches);
+        } else {
+          state.cascade.active = false;
+          updateStateExport();
+        }
+      }, cascadeDelay);
+    }, cascadeDelay);
+  }, matchDelay);
 }
 
 function resetBoard() {
