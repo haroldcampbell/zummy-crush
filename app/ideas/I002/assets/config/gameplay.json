@@ -97,12 +97,16 @@
     "cascadeSpacingGapMultiplier": 2
   },
   "scoring": {
-    "bonusPerExtraTile": 5,
     "tileValues": {
-      "diamond": 10,
-      "circle": 20,
-      "triangle": 30,
-      "hexagon": 40
+      "diamond": 100,
+      "circle": 200,
+      "triangle": 300,
+      "hexagon": 400
+    },
+    "bonusByLength": {
+      "4": 250,
+      "5": 500,
+      "6": 10000
     }
   },
   "powerUps": {

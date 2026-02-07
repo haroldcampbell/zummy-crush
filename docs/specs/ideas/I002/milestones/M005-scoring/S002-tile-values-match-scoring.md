@@ -34,8 +34,8 @@ Matches should convert to points using a clear, tunable value table.
 
 ## Notes
 
-- Assumption: Base values use a simple 10/20/30/40 scale by tile type.
-- Assumption: Bonus per extra tile defaults to +5.
+- Assumption: Base values use a 100/200/300/400 scale by tile type.
+- Assumption: Bonuses are defined per match length (4: +250, 5: +500, 6: +10000).
 
 ## Definition of Done (DoD)
 

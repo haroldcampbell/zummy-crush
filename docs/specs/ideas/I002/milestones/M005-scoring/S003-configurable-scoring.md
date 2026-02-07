@@ -20,7 +20,7 @@ Scoring needs to be tunable during playtests without code changes.
 ## Functional Requirements
 
 - Tile value table is read from config
-- Bonus per extra tile is read from config
+- Bonus per match length is read from config
 
 ## Non-Functional Requirements
 

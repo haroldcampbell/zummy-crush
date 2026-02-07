@@ -711,12 +711,13 @@ function easeCascade(t, elasticity, decel) {
 function scoreMatches(runs) {
   const scoring = state.config.scoring || {};
   const tileValues = scoring.tileValues || {};
-  const bonusPerExtra = scoring.bonusPerExtraTile ?? 0;
+  const bonusByLength = scoring.bonusByLength || {};
   let points = 0;
   runs.forEach((run) => {
     const baseValue = tileValues[run.typeId] ?? 0;
     points += baseValue * run.length;
-    points += Math.max(0, run.length - 3) * bonusPerExtra;
+    const bonus = bonusByLength[String(run.length)] ?? 0;
+    points += bonus;
   });
   return points;
 }
