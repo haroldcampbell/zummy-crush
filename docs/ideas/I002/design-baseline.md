@@ -16,3 +16,8 @@ Purpose: Provide shared UI/UX defaults used by I002 specs so implementation is c
 
 - Core palette: TBD
 - Background: TBD
+
+## Tile Set (Draft)
+
+- Base tiles: 4 thematic icons (TBD)
+- Power-up variants: derived from the same 4 icons with distinct treatment

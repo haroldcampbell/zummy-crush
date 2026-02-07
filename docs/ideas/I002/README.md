@@ -1,10 +1,10 @@
-# I002 - <Idea Name>
+# I002 - Rotate and Match
 
 This folder contains the idea-scoped docs for I002.
 
 ## Run
 
-TBD.
+TBD (prototype not yet implemented).
 
 ## Tests
 

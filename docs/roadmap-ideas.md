@@ -8,7 +8,7 @@ This file tracks the status of each idea in the portfolio.
   - Status: Active
   - Roadmap: `docs/ideas/I001/roadmap.md`
   - Specs: `docs/specs/ideas/I001/`
-- [ ] I002 - <Idea Name>
+- [ ] I002 - Rotate and Match
   - Status: Proposed
   - Roadmap: `docs/ideas/I002/roadmap.md`
   - Specs: `docs/specs/ideas/I002/`

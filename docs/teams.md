@@ -7,7 +7,7 @@ Track who is responsible for each idea and its active work.
 - Owner: TBD
 - Active focus: M005 polish pass
 
-## I002 - <Idea Name>
+## I002 - Rotate and Match
 
 - Owner: TBD
 - Active focus: TBD
