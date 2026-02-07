@@ -94,9 +94,27 @@
     "tileBase": "#fdfbf8"
   },
   "debug": {
-    "forceVariant": null
+    "forceVariant": null,
+    "enableStateExport": true
   },
   "features": {
     "matchesEnabled": true
+  },
+  "physics": {
+    "enabled": true,
+    "gravityPxPerMs": 0.3,
+    "collisionDecel": 0.9,
+    "bounceElasticity": 2.5,
+    "repulsion": {
+      "radius": 0,
+      "strength": 1,
+      "decayMs": 400,
+      "tapBoost": 0.35
+    },
+    "tap": {
+      "scaleDown": 0.08,
+      "scaleDurationMs": 140
+    },
+    "cascadeSpacingGapMultiplier": 2
   }
 }

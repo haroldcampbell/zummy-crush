@@ -7,11 +7,15 @@ import {
   collapseGrid,
   refillGrid,
 } from "./board-logic.mjs";
+import { isInputLocked } from "./input-lock.mjs";
 
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
 const resetButton = document.getElementById("reset");
+const exportButton = document.getElementById("export-state");
 const statusEl = document.getElementById("status");
+
+let swRegistration = null;
 
 const state = {
   config: null,
@@ -112,7 +116,7 @@ function pickLineIndex(x, y) {
 }
 
 function startDrag(event) {
-  if (state.snapping || state.cascade.active) return;
+  if (isInputLocked({ snapping: state.snapping, cascadeActive: state.cascade.active })) return;
   const rect = canvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
@@ -128,7 +132,7 @@ function startDrag(event) {
 
 function updateDrag(event) {
   if (pointerState.id !== event.pointerId) return;
-  if (state.snapping || state.cascade.active) return;
+  if (isInputLocked({ snapping: state.snapping, cascadeActive: state.cascade.active })) return;
   const rect = canvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
@@ -157,7 +161,7 @@ function updateDrag(event) {
 
 function endDrag(event) {
   if (pointerState.id !== event.pointerId) return;
-  if (state.snapping || state.cascade.active) return;
+  if (isInputLocked({ snapping: state.snapping, cascadeActive: state.cascade.active })) return;
 
   const { cell } = getBoardMetrics();
   const axis = pointerState.axis;
@@ -405,6 +409,7 @@ function step(timestamp) {
       state.grid = applyRotation(state.grid, axis, index, offsetTiles);
       state.snapping = null;
       setStatus("Ready");
+      updateStateExport();
       startCascadeIfNeeded();
     }
   }
@@ -434,12 +439,14 @@ function resolveCascade(matchSet) {
     setTimeout(() => {
       state.grid = refillGrid(state.grid, tileTypes, { variant });
       drawGrid();
+      updateStateExport();
       const nextMatches = findMatches(state.grid);
       if (nextMatches.size > 0) {
         state.cascade.index += 1;
         resolveCascade(nextMatches);
       } else {
         state.cascade.active = false;
+        updateStateExport();
       }
     }, 180);
   }, 180);
@@ -450,6 +457,54 @@ function resetBoard() {
   state.grid = grid;
   state.tileTypes = tileTypes;
   setStatus("Ready");
+  updateStateExport();
+}
+
+function buildExportState() {
+  return {
+    timestamp: new Date().toISOString(),
+    rows: state.rows,
+    cols: state.cols,
+    cascade: { ...state.cascade },
+    grid: state.grid.map((row) =>
+      row.map((cell) =>
+        cell && cell.typeId ? { typeId: cell.typeId, variant: cell.variant } : null
+      )
+    ),
+    config: {
+      board: state.config.board,
+      tile: state.config.tile,
+      tileSet: state.config.tileSet,
+      render: state.config.render,
+      features: state.config.features,
+      debug: state.config.debug,
+    },
+  };
+}
+
+function updateStateExport() {
+  if (!state.config?.debug?.enableStateExport) return;
+  const payload = JSON.stringify(buildExportState());
+  if (navigator.serviceWorker?.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: "STATE_UPDATE", payload });
+    return;
+  }
+  if (swRegistration?.active) {
+    swRegistration.active.postMessage({ type: "STATE_UPDATE", payload });
+  }
+}
+
+function downloadState() {
+  const payload = buildExportState();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `i002-state-${Date.now()}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 async function init() {
@@ -464,6 +519,24 @@ async function init() {
   canvas.addEventListener("pointerup", endDrag);
   canvas.addEventListener("pointercancel", endDrag);
   resetButton.addEventListener("click", resetBoard);
+  if (state.config.debug?.enableStateExport && exportButton) {
+    exportButton.hidden = false;
+    exportButton.addEventListener("click", downloadState);
+  }
+  if (state.config.debug?.enableStateExport && "serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js", { scope: "./" }).then((registration) => {
+      swRegistration = registration;
+      updateStateExport();
+    });
+  } else if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => {
+        if (registration.scope.includes("/client/")) {
+          registration.unregister();
+        }
+      });
+    });
+  }
   requestAnimationFrame(step);
 }
 

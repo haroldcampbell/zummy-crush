@@ -94,3 +94,65 @@ const nullGrid = [
   [null, null, null],
 ];
 assert.equal(findMatches(nullGrid).size, 0, "findMatches ignores empty cells");
+
+const invalidGrid = [
+  [{}, { typeId: "A" }],
+  [{ typeId: "B" }, {}],
+];
+const collapsedInvalid = collapseGrid(invalidGrid);
+assert.equal(collapsedInvalid[1][0]?.typeId, "B", "collapseGrid ignores invalid tiles");
+const refilledInvalid = refillGrid(invalidGrid, [{ id: "X" }]);
+assert.equal(refilledInvalid[0][0]?.typeId, "X", "refillGrid replaces invalid tiles");
+
+function withSeededRandom(seed, fn) {
+  const originalRandom = Math.random;
+  let state = seed;
+  Math.random = () => {
+    state = (state * 1664525 + 1013904223) % 4294967296;
+    return state / 4294967296;
+  };
+  try {
+    return fn();
+  } finally {
+    Math.random = originalRandom;
+  }
+}
+
+function runCascadeLoop(grid, tileTypes, maxSteps = 10) {
+  let steps = 0;
+  let current = grid;
+  while (steps <= maxSteps) {
+    const matches = findMatches(current);
+    if (matches.size === 0) break;
+    current = refillGrid(collapseGrid(clearMatches(current, matches)), tileTypes);
+    steps += 1;
+  }
+  assert.ok(steps <= maxSteps, "cascade loop terminates within limit");
+  return { grid: current, steps };
+}
+
+withSeededRandom(42, () => {
+  for (let i = 0; i < 20; i += 1) {
+    const seededGrid = fillGridNoMatches(8, 8, [
+      { id: "A" },
+      { id: "B" },
+      { id: "C" },
+      { id: "D" },
+    ]);
+    assert.equal(findMatches(seededGrid).size, 0, "seeded grid avoids pre-matches");
+  }
+});
+
+withSeededRandom(7, () => {
+  const cascadeGrid = [
+    [{ typeId: "A" }, { typeId: "B" }, { typeId: "A" }],
+    [{ typeId: "B" }, { typeId: "A" }, { typeId: "B" }],
+    [{ typeId: "A" }, { typeId: "A" }, { typeId: "A" }],
+  ];
+  const result = runCascadeLoop(cascadeGrid, [{ id: "A" }, { id: "B" }], 6);
+  assert.ok(result.steps >= 1, "cascade loop runs when matches exist");
+  const hasInvalid = result.grid.some((row) =>
+    row.some((cell) => !cell || !cell.typeId)
+  );
+  assert.equal(hasInvalid, false, "cascade loop ends with a full valid grid");
+});

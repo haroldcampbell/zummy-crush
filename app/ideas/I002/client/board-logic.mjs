@@ -114,6 +114,10 @@ export function clearMatches(grid, matchSet) {
   return nextGrid;
 }
 
+function isValidCell(cell) {
+  return Boolean(cell && cell.typeId);
+}
+
 export function collapseGrid(grid) {
   const rows = grid.length;
   const cols = grid[0]?.length || 0;
@@ -123,7 +127,7 @@ export function collapseGrid(grid) {
     let writeRow = rows - 1;
     for (let r = rows - 1; r >= 0; r -= 1) {
       const cell = grid[r][c];
-      if (cell) {
+      if (isValidCell(cell)) {
         nextGrid[writeRow][c] = { ...cell };
         writeRow -= 1;
       }
@@ -140,7 +144,7 @@ export function refillGrid(grid, tileTypes, options = {}) {
 
   for (let r = 0; r < rows; r += 1) {
     for (let c = 0; c < cols; c += 1) {
-      if (!nextGrid[r][c]) {
+      if (!isValidCell(nextGrid[r][c])) {
         nextGrid[r][c] = createTile(tileTypes, options);
       }
     }
