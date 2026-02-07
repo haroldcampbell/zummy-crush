@@ -124,5 +124,18 @@
       "scaleDurationMs": 140
     },
     "cascadeSpacingGapMultiplier": 2
+  },
+  "scoring": {
+    "bonusPerExtraTile": 5,
+    "tileValues": {
+      "sun": 10,
+      "moon": 20,
+      "flame": 30,
+      "leaf": 40,
+      "amber": 10,
+      "sapphire": 20,
+      "ruby": 30,
+      "jade": 40
+    }
   }
 }

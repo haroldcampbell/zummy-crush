@@ -3,6 +3,7 @@ import {
   createGrid,
   fillGridNoMatches,
   findMatches,
+  findMatchRuns,
   clearMatches,
   collapseGrid,
   refillGrid,
@@ -14,6 +15,7 @@ const ctx = canvas.getContext("2d");
 const resetButton = document.getElementById("reset");
 const exportButton = document.getElementById("export-state");
 const statusEl = document.getElementById("status");
+const scoreValueEl = document.getElementById("score-value");
 
 let swRegistration = null;
 
@@ -35,6 +37,7 @@ const state = {
     index: 0,
   },
   now: 0,
+  score: 0,
 };
 
 const pointerState = {
@@ -52,6 +55,9 @@ function setStatus(text) {
   if (statusEl) statusEl.textContent = text;
 }
 
+function updateScoreDisplay() {
+  if (scoreValueEl) scoreValueEl.textContent = state.score.toLocaleString("en-US");
+}
 function getConfigUrl() {
   return new URL("../assets/config/gameplay.json", window.location.href);
 }
@@ -689,6 +695,19 @@ function easeCascade(t, elasticity, decel) {
   return Math.min(Math.max(base - wobble, 0), 1);
 }
 
+function scoreMatches(runs) {
+  const scoring = state.config.scoring || {};
+  const tileValues = scoring.tileValues || {};
+  const bonusPerExtra = scoring.bonusPerExtraTile ?? 0;
+  let points = 0;
+  runs.forEach((run) => {
+    const baseValue = tileValues[run.typeId] ?? 0;
+    points += baseValue * run.length;
+    points += Math.max(0, run.length - 3) * bonusPerExtra;
+  });
+  return points;
+}
+
 function computeTapScale(now, tapStart, durationMs, scaleDown) {
   if (!tapStart || durationMs <= 0 || scaleDown <= 0) return 1;
   const elapsed = now - tapStart;
@@ -756,6 +775,9 @@ async function resolveCascade(matchSet) {
   const cascadeDelay = animations.cascadeMs ?? 180;
   const tileTypes = getActiveTileSet(state.config).types;
   const variant = state.config.tile.variant;
+  const runs = findMatchRuns(state.grid);
+  state.score += scoreMatches(runs);
+  updateScoreDisplay();
   await delay(matchDelay);
   state.grid = clearMatches(state.grid, matchSet);
   drawGrid();
@@ -798,6 +820,8 @@ function resetBoard() {
   const { grid, tileTypes } = createBoard(state.config);
   state.grid = grid;
   state.tileTypes = tileTypes;
+  state.score = 0;
+  updateScoreDisplay();
   setStatus("Ready");
   updateStateExport();
 }

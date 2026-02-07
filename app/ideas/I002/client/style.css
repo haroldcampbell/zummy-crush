@@ -26,15 +26,33 @@ body {
 }
 
 .hud {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hud-item {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.hud-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: #5a4c43;
+}
+
+.hud-value {
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .hud-actions {
-	display: flex;
-	gap: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 .hud h1 {

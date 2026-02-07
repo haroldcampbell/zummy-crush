@@ -4,6 +4,7 @@ import {
   rotateCol,
   applyRotation,
   findMatches,
+  findMatchRuns,
   clearMatches,
   collapseGrid,
   refillGrid,
@@ -65,6 +66,9 @@ const matchGrid = [
 
 const matches = findMatches(matchGrid);
 assert.equal(matches.size, 3, "findMatches detects horizontal runs");
+const runs = findMatchRuns(matchGrid);
+assert.equal(runs.length, 1, "findMatchRuns returns a single run for simple match");
+assert.equal(runs[0].length, 3, "findMatchRuns tracks run length");
 
 const cleared = clearMatches(matchGrid, matches);
 assert.equal(cleared[0][0], null, "clearMatches removes matched tiles");

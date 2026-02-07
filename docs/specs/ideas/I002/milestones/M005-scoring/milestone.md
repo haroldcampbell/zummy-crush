@@ -26,9 +26,9 @@ Add score display and basic scoring rules so playtests can evaluate reward pacin
 
 ## Specs
 
-- [ ] S001 - HUD Score Display
-- [ ] S002 - Tile Value Table + Match Scoring
-- [ ] S003 - Configurable Scoring Parameters
+- [x] S001 - HUD Score Display
+- [x] S002 - Tile Value Table + Match Scoring
+- [x] S003 - Configurable Scoring Parameters
 
 ## Dependencies
 
