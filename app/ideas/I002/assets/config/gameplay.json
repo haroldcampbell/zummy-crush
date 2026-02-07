@@ -22,25 +22,25 @@
         "name": "Runes",
         "types": [
           {
-            "id": "sun",
+            "id": "diamond",
             "shape": "diamond",
             "fill": "#f2b446",
             "stroke": "#7a4b12"
           },
           {
-            "id": "moon",
+            "id": "circle",
             "shape": "circle",
             "fill": "#4fb6c2",
             "stroke": "#1f4c52"
           },
           {
-            "id": "flame",
+            "id": "triangle",
             "shape": "triangle",
             "fill": "#e66a5c",
             "stroke": "#7a2f27"
           },
           {
-            "id": "leaf",
+            "id": "hexagon",
             "shape": "hex",
             "fill": "#6fbf73",
             "stroke": "#2f5a34"
@@ -99,10 +99,10 @@
   "scoring": {
     "bonusPerExtraTile": 5,
     "tileValues": {
-      "sun": 10,
-      "moon": 20,
-      "flame": 30,
-      "leaf": 40
+      "diamond": 10,
+      "circle": 20,
+      "triangle": 30,
+      "hexagon": 40
     }
   },
   "powerUps": {
