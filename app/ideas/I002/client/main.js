@@ -456,6 +456,30 @@ function capturePositions(grid) {
   return map;
 }
 
+function getCascadeStaggerMs() {
+  const staggerConfig = state.config.animations?.cascadeStaggerMs || { min: 0, max: 0 };
+  const min = Math.min(staggerConfig.min ?? 0, staggerConfig.max ?? 0);
+  const max = Math.max(staggerConfig.min ?? 0, staggerConfig.max ?? 0);
+  if (max <= min) return min;
+  return min + Math.random() * (max - min);
+}
+
+function computeFallDuration(fromRect, toRect) {
+  const distance = Math.abs(toRect.y - fromRect.y);
+  const gravity = state.config.physics?.gravityPxPerMs ?? 0;
+  const base = state.config.animations?.cascadeMs ?? 180;
+  if (gravity <= 0) return base;
+  return Math.max(base, distance / gravity);
+}
+
+function computeSpacingTime() {
+  const gravity = state.config.physics?.gravityPxPerMs ?? 0;
+  const spacingGap = state.config.physics?.cascadeSpacingGapMultiplier ?? 2;
+  if (gravity <= 0) return getCascadeStaggerMs();
+  const spacingPx = state.config.board.gap * spacingGap;
+  return spacingPx / gravity;
+}
+
 function buildAnimation(tiles, fromPositions, toPositions, duration) {
   if (!tiles.length) return Promise.resolve();
   const { cell } = getBoardMetrics();
@@ -463,30 +487,55 @@ function buildAnimation(tiles, fromPositions, toPositions, duration) {
   const tileIndex = new Map();
   const from = [];
   const to = [];
-  const progresses = new Array(tiles.length).fill(0);
-  tiles.forEach((tile, index) => {
+  const progresses = [];
+  const delays = [];
+  const durations = [];
+  const moves = [];
+
+  tiles.forEach((tile) => {
     const fromPos = fromPositions.get(tile);
     const toPos = toPositions.get(tile);
     if (!fromPos || !toPos) return;
-    tileIndex.set(tile, { index, from: null, to: null });
-    from.push({
-      x: originX + fromPos.col * cell,
-      y: originY + fromPos.row * cell,
-    });
-    to.push({
-      x: originX + toPos.col * cell,
-      y: originY + toPos.row * cell,
-    });
-    tileIndex.set(tile, { index, from: from[index], to: to[index] });
+    moves.push({ tile, from: fromPos, to: toPos });
+  });
+
+  moves.sort((a, b) => {
+    if (a.to.col !== b.to.col) return a.to.col - b.to.col;
+    return b.from.row - a.from.row;
+  });
+
+  const perColumnTime = new Map();
+  const spacingTimeMs = computeSpacingTime();
+  moves.forEach((move) => {
+    const index = from.length;
+    const fromRect = {
+      x: originX + move.from.col * cell,
+      y: originY + move.from.row * cell,
+    };
+    const toRect = {
+      x: originX + move.to.col * cell,
+      y: originY + move.to.row * cell,
+    };
+    from.push(fromRect);
+    to.push(toRect);
+    progresses.push(0);
+    tileIndex.set(move.tile, { index, from: fromRect, to: toRect });
+    const currentTime = perColumnTime.get(move.to.col) || 0;
+    delays.push(currentTime);
+    const staggerMs = getCascadeStaggerMs();
+    perColumnTime.set(move.to.col, currentTime + Math.max(spacingTimeMs, staggerMs));
+    durations.push(computeFallDuration(fromRect, toRect));
   });
 
   return new Promise((resolve) => {
     state.animation = {
-      tiles,
+      tiles: moves.map((move) => move.tile),
       from,
       to,
       progresses,
       tileIndex,
+      delays,
+      durations,
       start: performance.now(),
       duration,
       onComplete: resolve,
@@ -501,29 +550,58 @@ function buildSpawnAnimation(spawnedTiles, toPositions, duration) {
   const tileIndex = new Map();
   const from = [];
   const to = [];
-  const progresses = new Array(spawnedTiles.length).fill(0);
-  spawnedTiles.forEach((tile, index) => {
+  const progresses = [];
+  const delays = [];
+  const durations = [];
+  const slots = [];
+
+  spawnedTiles.forEach((tile) => {
     const toPos = toPositions.get(tile);
     if (!toPos) return;
-    const spawnRow = Math.max(-2, toPos.row - 2);
-    from.push({
-      x: originX + toPos.col * cell,
+    slots.push({ tile, to: toPos });
+  });
+
+  slots.sort((a, b) => {
+    if (a.to.col !== b.to.col) return a.to.col - b.to.col;
+    return b.to.row - a.to.row;
+  });
+
+  const perColumnTime = new Map();
+  const perColumnCount = new Map();
+  const spacingTimeMs = computeSpacingTime();
+  slots.forEach((slot) => {
+    const index = from.length;
+    const count = perColumnCount.get(slot.to.col) || 0;
+    perColumnCount.set(slot.to.col, count + 1);
+    const spawnRow = -1 - count;
+    const fromRect = {
+      x: originX + slot.to.col * cell,
       y: originY + spawnRow * cell,
-    });
-    to.push({
-      x: originX + toPos.col * cell,
-      y: originY + toPos.row * cell,
-    });
-    tileIndex.set(tile, { index, from: from[index], to: to[index] });
+    };
+    const toRect = {
+      x: originX + slot.to.col * cell,
+      y: originY + slot.to.row * cell,
+    };
+    from.push(fromRect);
+    to.push(toRect);
+    progresses.push(0);
+    tileIndex.set(slot.tile, { index, from: fromRect, to: toRect });
+    const currentTime = perColumnTime.get(slot.to.col) || 0;
+    delays.push(currentTime);
+    const staggerMs = getCascadeStaggerMs();
+    perColumnTime.set(slot.to.col, currentTime + Math.max(spacingTimeMs, staggerMs));
+    durations.push(computeFallDuration(fromRect, toRect));
   });
 
   return new Promise((resolve) => {
     state.animation = {
-      tiles: spawnedTiles,
+      tiles: slots.map((slot) => slot.tile),
       from,
       to,
       progresses,
       tileIndex,
+      delays,
+      durations,
       start: performance.now(),
       duration,
       onComplete: resolve,
@@ -534,14 +612,21 @@ function buildSpawnAnimation(spawnedTiles, toPositions, duration) {
 function updateAnimation(timestamp) {
   const anim = state.animation;
   if (!anim) return;
-  const elapsed = timestamp - anim.start;
-  const progress = Math.min(Math.max(elapsed / anim.duration, 0), 1);
   const physics = state.config.physics || {};
-  const eased = easeCascade(progress, physics.bounceElasticity, physics.collisionDecel);
-  for (let i = 0; i < anim.progresses.length; i += 1) {
-    anim.progresses[i] = eased;
+  let completed = 0;
+  for (let i = 0; i < anim.tiles.length; i += 1) {
+    const delay = anim.delays ? anim.delays[i] : 0;
+    const duration = anim.durations ? anim.durations[i] : anim.duration;
+    const localElapsed = timestamp - (anim.start + delay);
+    const linear = Math.min(Math.max(localElapsed / duration, 0), 1);
+    anim.progresses[i] = easeCascade(
+      linear,
+      physics.bounceElasticity,
+      physics.collisionDecel
+    );
+    if (linear >= 1) completed += 1;
   }
-  if (progress >= 1) {
+  if (completed === anim.tiles.length) {
     const callback = anim.onComplete;
     state.animation = null;
     if (callback) callback();
