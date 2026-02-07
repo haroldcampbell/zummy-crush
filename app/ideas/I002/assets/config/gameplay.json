@@ -89,8 +89,9 @@
     }
   },
   "render": {
-    "background": "#1c1a16",
-    "panel": "#2a2620"
+    "background": "#f6f4f0",
+    "panel": "#efe7dc",
+    "tileBase": "#fdfbf8"
   },
   "debug": {
     "forceVariant": null

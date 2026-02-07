@@ -8,6 +8,7 @@ import {
   collapseGrid,
   refillGrid,
   createTile,
+  fillGridNoMatches,
 } from "../client/board-logic.mjs";
 
 const rowGrid = [
@@ -78,3 +79,11 @@ console.log("board-logic match and gravity tests passed");
 
 const variantTile = createTile([{ id: "Z" }], { variant: "powerup" });
 assert.equal(variantTile.variant, "powerup", "createTile respects variant override");
+
+const noMatchGrid = fillGridNoMatches(6, 6, [
+  { id: "A" },
+  { id: "B" },
+  { id: "C" },
+  { id: "D" },
+]);
+assert.equal(findMatches(noMatchGrid).size, 0, "fillGridNoMatches avoids initial matches");

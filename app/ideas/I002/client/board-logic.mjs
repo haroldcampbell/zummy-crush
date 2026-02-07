@@ -146,9 +146,34 @@ export function refillGrid(grid, tileTypes, options = {}) {
 export function fillGridNoMatches(rows, cols, tileTypes, options = {}) {
   let grid = createGrid(rows, cols, tileTypes, options);
   let attempts = 0;
-  while (findMatches(grid).size > 0 && attempts < 25) {
+  while (findMatches(grid).size > 0 && attempts < 50) {
     grid = createGrid(rows, cols, tileTypes, options);
     attempts += 1;
+  }
+  if (findMatches(grid).size === 0) {
+    return grid;
+  }
+
+  const rowsCount = grid.length;
+  const colsCount = grid[0]?.length || 0;
+  for (let r = 0; r < rowsCount; r += 1) {
+    for (let c = 0; c < colsCount; c += 1) {
+      let guard = 0;
+      while (guard < 10) {
+        const candidate = createTile(tileTypes, options);
+        const left1 = grid[r][c - 1]?.typeId;
+        const left2 = grid[r][c - 2]?.typeId;
+        const up1 = grid[r - 1]?.[c]?.typeId;
+        const up2 = grid[r - 2]?.[c]?.typeId;
+        const createsRowMatch = left1 && left2 && left1 === left2 && candidate.typeId === left1;
+        const createsColMatch = up1 && up2 && up1 === up2 && candidate.typeId === up1;
+        if (!createsRowMatch && !createsColMatch) {
+          grid[r][c] = candidate;
+          break;
+        }
+        guard += 1;
+      }
+    }
   }
   return grid;
 }

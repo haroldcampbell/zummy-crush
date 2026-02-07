@@ -1,8 +1,8 @@
 :root {
   color-scheme: light;
-  font-family: "Trebuchet MS", "Verdana", sans-serif;
-  background: #1c1a16;
-  color: #f2e8d8;
+  font-family: "Georgia", "Times New Roman", serif;
+  background: #f6f4f0;
+  color: #222;
 }
 
 * {
@@ -15,7 +15,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top, #2f2a24 0%, #1c1a16 70%);
+  background: #f6f4f0;
 }
 
 .shell {
@@ -40,15 +40,15 @@ body {
 .hud p {
   margin: 0;
   font-size: 12px;
-  opacity: 0.8;
+  color: #5a4c43;
 }
 
 button {
-  border: 1px solid #6f5a3d;
-  background: #2f2a24;
-  color: #f2e8d8;
+  border: 2px solid #2b2b2b;
+  background: #fff;
+  color: #222;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: 999px;
   font-size: 12px;
   cursor: pointer;
 }
@@ -56,8 +56,8 @@ button {
 .board-panel {
   padding: 14px;
   border-radius: 18px;
-  background: #2a2620;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+  background: #efe7dc;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
   display: flex;
   justify-content: center;
 }
@@ -70,5 +70,5 @@ canvas {
 
 .footnote {
   font-size: 12px;
-  opacity: 0.7;
+  color: #5a4c43;
 }

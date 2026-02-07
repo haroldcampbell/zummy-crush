@@ -196,6 +196,12 @@ function endDrag(event) {
 }
 
 function drawTile(x, y, size, tile, config) {
+  const baseFill = config.render?.tileBase || "#12110f";
+  if (!tile) {
+    ctx.fillStyle = baseFill;
+    ctx.fillRect(x, y, size, size);
+    return;
+  }
   const variantMode = config.debug.forceVariant || tile.variant || config.tile.variant;
   const tileSet = getActiveTileSet(config);
   const type = tileSet.types.find((entry) => entry.id === tile.typeId) || tileSet.types[0];
@@ -204,7 +210,7 @@ function drawTile(x, y, size, tile, config) {
   const centerX = x + size / 2;
   const centerY = y + size / 2;
 
-  ctx.fillStyle = "#12110f";
+  ctx.fillStyle = baseFill;
   ctx.fillRect(x, y, size, size);
 
   drawShape(type.shape, centerX, centerY, iconSize / 2, type.fill, type.stroke);

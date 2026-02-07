@@ -35,6 +35,7 @@ After matches clear, tiles should fall and refill to keep the loop intact.
 
 - Assumption: I002 adopts bottom-first cascades and no-overlap behavior (aligned with I001 XDR-002).
 - Assumption: Spawn only after space opens (aligned with I001 XDR-003).
+- Assumption: Refill is enforced so no empty cells remain after each cascade step.
 
 ## Data / State
 
