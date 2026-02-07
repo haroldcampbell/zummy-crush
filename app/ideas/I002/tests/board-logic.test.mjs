@@ -87,3 +87,10 @@ const noMatchGrid = fillGridNoMatches(6, 6, [
   { id: "D" },
 ]);
 assert.equal(findMatches(noMatchGrid).size, 0, "fillGridNoMatches avoids initial matches");
+
+const nullGrid = [
+  [null, null, null],
+  [{ typeId: "A" }, null, { typeId: "B" }],
+  [null, null, null],
+];
+assert.equal(findMatches(nullGrid).size, 0, "findMatches ignores empty cells");

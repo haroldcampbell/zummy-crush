@@ -14,8 +14,10 @@ Purpose: Provide shared UI/UX defaults used by I002 specs so implementation is c
 
 ## Color + Contrast
 
-- Core palette: TBD
-- Background: TBD
+- Core palette: light parchment base with warm panel contrast
+- Background: #f6f4f0
+- Panel: #efe7dc
+- Tile base: #fdfbf8
 
 ## Tile Set (Draft)
 

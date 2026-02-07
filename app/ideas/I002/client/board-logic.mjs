@@ -61,38 +61,44 @@ export function findMatches(grid) {
   const cols = grid[0]?.length || 0;
 
   for (let r = 0; r < rows; r += 1) {
+    let runId = null;
+    let runLength = 0;
     let runStart = 0;
-    for (let c = 1; c <= cols; c += 1) {
-      const currentId = grid[r][c]?.typeId;
-      const prevId = grid[r][c - 1]?.typeId;
-      if (c < cols && currentId === prevId) {
+    for (let c = 0; c <= cols; c += 1) {
+      const currentId = c < cols ? grid[r][c]?.typeId : null;
+      if (currentId && currentId === runId) {
+        runLength += 1;
         continue;
       }
-      const runLength = c - runStart;
-      if (runLength >= 3) {
-        for (let k = runStart; k < c; k += 1) {
+      if (runId && runLength >= 3) {
+        for (let k = runStart; k < runStart + runLength; k += 1) {
           matches.add(`${r},${k}`);
         }
       }
+      runId = currentId || null;
       runStart = c;
+      runLength = currentId ? 1 : 0;
     }
   }
 
   for (let c = 0; c < cols; c += 1) {
+    let runId = null;
+    let runLength = 0;
     let runStart = 0;
-    for (let r = 1; r <= rows; r += 1) {
-      const currentId = grid[r]?.[c]?.typeId;
-      const prevId = grid[r - 1]?.[c]?.typeId;
-      if (r < rows && currentId === prevId) {
+    for (let r = 0; r <= rows; r += 1) {
+      const currentId = r < rows ? grid[r][c]?.typeId : null;
+      if (currentId && currentId === runId) {
+        runLength += 1;
         continue;
       }
-      const runLength = r - runStart;
-      if (runLength >= 3) {
-        for (let k = runStart; k < r; k += 1) {
+      if (runId && runLength >= 3) {
+        for (let k = runStart; k < runStart + runLength; k += 1) {
           matches.add(`${k},${c}`);
         }
       }
+      runId = currentId || null;
       runStart = r;
+      runLength = currentId ? 1 : 0;
     }
   }
 
