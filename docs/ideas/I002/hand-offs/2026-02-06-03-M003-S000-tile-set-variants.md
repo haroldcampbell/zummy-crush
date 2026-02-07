@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Added thematic tile sets (runes/gems) with four base types.
+- Added thematic tile set with four base types (runes).
 - Implemented power-up variant visual treatment via config toggle.
 - Exposed readability controls (tile size, gap, icon scale) in config.
 

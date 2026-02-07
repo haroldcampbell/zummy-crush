@@ -46,35 +46,6 @@
             "stroke": "#2f5a34"
           }
         ]
-      },
-      "gems": {
-        "name": "Gems",
-        "types": [
-          {
-            "id": "amber",
-            "shape": "square",
-            "fill": "#f0a84f",
-            "stroke": "#6b4317"
-          },
-          {
-            "id": "sapphire",
-            "shape": "oval",
-            "fill": "#4c7fd9",
-            "stroke": "#243c73"
-          },
-          {
-            "id": "ruby",
-            "shape": "star",
-            "fill": "#d04f6a",
-            "stroke": "#6d2436"
-          },
-          {
-            "id": "jade",
-            "shape": "drop",
-            "fill": "#5fbf9a",
-            "stroke": "#2f5c4e"
-          }
-        ]
       }
     }
   },
@@ -131,11 +102,7 @@
       "sun": 10,
       "moon": 20,
       "flame": 30,
-      "leaf": 40,
-      "amber": 10,
-      "sapphire": 20,
-      "ruby": 30,
-      "jade": 40
+      "leaf": 40
     }
   },
   "powerUps": {
