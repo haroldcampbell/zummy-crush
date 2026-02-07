@@ -325,6 +325,7 @@ function drawVariantFrame(x, y, size, style) {
 function drawGrid() {
   const { cell, boardWidth, boardHeight } = getBoardMetrics();
   const { x: originX, y: originY } = boardOrigin();
+  const animatedTiles = state.animation?.tileIndex || new Map();
 
   ctx.fillStyle = state.config.render.background;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -340,9 +341,11 @@ function drawGrid() {
     for (let c = 0; c < state.cols; c += 1) {
       if (skipAxis === "row" && skipIndex === r) continue;
       if (skipAxis === "col" && skipIndex === c) continue;
+      const tile = state.grid[r][c];
+      if (tile && animatedTiles.has(tile)) continue;
       const x = originX + c * cell;
       const y = originY + r * cell;
-      drawTile(x, y, state.config.board.tileSize, state.grid[r][c], state.config);
+      drawTile(x, y, state.config.board.tileSize, tile, state.config);
     }
   }
 
@@ -352,6 +355,17 @@ function drawGrid() {
 
   if (state.dragging) {
     drawLineHighlight(state.dragging.axis, state.dragging.index);
+  }
+
+  if (state.animation?.tiles) {
+    state.animation.tiles.forEach((tile) => {
+      const entry = state.animation.tileIndex.get(tile);
+      if (!entry) return;
+      const progress = state.animation.progresses[entry.index] ?? 0;
+      const x = entry.from.x + (entry.to.x - entry.from.x) * progress;
+      const y = entry.from.y + (entry.to.y - entry.from.y) * progress;
+      drawTile(x, y, state.config.board.tileSize, tile, state.config);
+    });
   }
 }
 
@@ -397,6 +411,7 @@ function drawActiveLine(active) {
 }
 
 function step(timestamp) {
+  updateAnimation(timestamp);
   if (state.snapping) {
     const elapsed = timestamp - state.snapping.start;
     const t = clamp(elapsed / state.snapping.duration, 0, 1);
@@ -428,33 +443,168 @@ function startCascadeIfNeeded() {
   resolveCascade(matches);
 }
 
-function resolveCascade(matchSet) {
+function capturePositions(grid) {
+  const map = new Map();
+  for (let r = 0; r < grid.length; r += 1) {
+    for (let c = 0; c < grid[r].length; c += 1) {
+      const tile = grid[r][c];
+      if (tile && tile.typeId) {
+        map.set(tile, { row: r, col: c });
+      }
+    }
+  }
+  return map;
+}
+
+function buildAnimation(tiles, fromPositions, toPositions, duration) {
+  if (!tiles.length) return Promise.resolve();
+  const { cell } = getBoardMetrics();
+  const { x: originX, y: originY } = boardOrigin();
+  const tileIndex = new Map();
+  const from = [];
+  const to = [];
+  const progresses = new Array(tiles.length).fill(0);
+  tiles.forEach((tile, index) => {
+    const fromPos = fromPositions.get(tile);
+    const toPos = toPositions.get(tile);
+    if (!fromPos || !toPos) return;
+    tileIndex.set(tile, { index, from: null, to: null });
+    from.push({
+      x: originX + fromPos.col * cell,
+      y: originY + fromPos.row * cell,
+    });
+    to.push({
+      x: originX + toPos.col * cell,
+      y: originY + toPos.row * cell,
+    });
+    tileIndex.set(tile, { index, from: from[index], to: to[index] });
+  });
+
+  return new Promise((resolve) => {
+    state.animation = {
+      tiles,
+      from,
+      to,
+      progresses,
+      tileIndex,
+      start: performance.now(),
+      duration,
+      onComplete: resolve,
+    };
+  });
+}
+
+function buildSpawnAnimation(spawnedTiles, toPositions, duration) {
+  if (!spawnedTiles.length) return Promise.resolve();
+  const { cell } = getBoardMetrics();
+  const { x: originX, y: originY } = boardOrigin();
+  const tileIndex = new Map();
+  const from = [];
+  const to = [];
+  const progresses = new Array(spawnedTiles.length).fill(0);
+  spawnedTiles.forEach((tile, index) => {
+    const toPos = toPositions.get(tile);
+    if (!toPos) return;
+    const spawnRow = Math.max(-2, toPos.row - 2);
+    from.push({
+      x: originX + toPos.col * cell,
+      y: originY + spawnRow * cell,
+    });
+    to.push({
+      x: originX + toPos.col * cell,
+      y: originY + toPos.row * cell,
+    });
+    tileIndex.set(tile, { index, from: from[index], to: to[index] });
+  });
+
+  return new Promise((resolve) => {
+    state.animation = {
+      tiles: spawnedTiles,
+      from,
+      to,
+      progresses,
+      tileIndex,
+      start: performance.now(),
+      duration,
+      onComplete: resolve,
+    };
+  });
+}
+
+function updateAnimation(timestamp) {
+  const anim = state.animation;
+  if (!anim) return;
+  const elapsed = timestamp - anim.start;
+  const progress = Math.min(Math.max(elapsed / anim.duration, 0), 1);
+  const physics = state.config.physics || {};
+  const eased = easeCascade(progress, physics.bounceElasticity, physics.collisionDecel);
+  for (let i = 0; i < anim.progresses.length; i += 1) {
+    anim.progresses[i] = eased;
+  }
+  if (progress >= 1) {
+    const callback = anim.onComplete;
+    state.animation = null;
+    if (callback) callback();
+  }
+}
+
+function easeCascade(t, elasticity, decel) {
+  const clamped = Math.min(Math.max(t, 0), 1);
+  const decelFactor = Math.min(Math.max(decel ?? 0, 0), 1);
+  const exponent = 2 + decelFactor * 2;
+  const base = 1 - Math.pow(1 - clamped, exponent);
+  if (!elasticity || elasticity <= 0) return base;
+  const wobble =
+    Math.sin(clamped * Math.PI * 2) * (1 - clamped) * Math.min(elasticity, 1) * 0.12;
+  return Math.min(Math.max(base - wobble, 0), 1);
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function resolveCascade(matchSet) {
   const animations = state.config.animations || {};
   const matchDelay = animations.matchResolveMs ?? 120;
   const cascadeDelay = animations.cascadeMs ?? 180;
   const tileTypes = getActiveTileSet(state.config).types;
   const variant = state.config.tile.variant;
-  setTimeout(() => {
-    state.grid = clearMatches(state.grid, matchSet);
-    drawGrid();
-    setTimeout(() => {
-      state.grid = collapseGrid(state.grid);
-      drawGrid();
-      setTimeout(() => {
-        state.grid = refillGrid(state.grid, tileTypes, { variant });
-        drawGrid();
-        updateStateExport();
-        const nextMatches = findMatches(state.grid);
-        if (nextMatches.size > 0) {
-          state.cascade.index += 1;
-          resolveCascade(nextMatches);
-        } else {
-          state.cascade.active = false;
-          updateStateExport();
-        }
-      }, cascadeDelay);
-    }, cascadeDelay);
-  }, matchDelay);
+  await delay(matchDelay);
+  state.grid = clearMatches(state.grid, matchSet);
+  drawGrid();
+  await delay(cascadeDelay);
+  const preCollapsePositions = capturePositions(state.grid);
+  state.grid = collapseGrid(state.grid);
+  const postCollapsePositions = capturePositions(state.grid);
+  const movedTiles = Array.from(postCollapsePositions.keys()).filter((tile) => {
+    const from = preCollapsePositions.get(tile);
+    const to = postCollapsePositions.get(tile);
+    return from && to && (from.row !== to.row || from.col !== to.col);
+  });
+  await buildAnimation(movedTiles, preCollapsePositions, postCollapsePositions, cascadeDelay);
+  const preRefillGrid = state.grid.map((row) => row.slice());
+  state.grid = refillGrid(state.grid, tileTypes, { variant });
+  const postRefillPositions = capturePositions(state.grid);
+  const spawnedTiles = [];
+  for (let r = 0; r < preRefillGrid.length; r += 1) {
+    for (let c = 0; c < preRefillGrid[r].length; c += 1) {
+      const cell = preRefillGrid[r][c];
+      if (!cell || !cell.typeId) {
+        const tile = state.grid[r][c];
+        if (tile) spawnedTiles.push(tile);
+      }
+    }
+  }
+  await buildSpawnAnimation(spawnedTiles, postRefillPositions, cascadeDelay);
+  updateStateExport();
+  const nextMatches = findMatches(state.grid);
+  if (nextMatches.size > 0) {
+    state.cascade.index += 1;
+    await resolveCascade(nextMatches);
+  } else {
+    state.cascade.active = false;
+    updateStateExport();
+  }
 }
 
 function resetBoard() {

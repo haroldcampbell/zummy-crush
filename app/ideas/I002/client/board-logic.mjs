@@ -128,7 +128,7 @@ export function collapseGrid(grid) {
     for (let r = rows - 1; r >= 0; r -= 1) {
       const cell = grid[r][c];
       if (isValidCell(cell)) {
-        nextGrid[writeRow][c] = { ...cell };
+        nextGrid[writeRow][c] = cell;
         writeRow -= 1;
       }
     }
