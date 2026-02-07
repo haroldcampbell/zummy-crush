@@ -33,6 +33,7 @@ Power-up tiles must be recognizable and still tied to their base color.
 ## Notes
 
 - Assumption: Visual markers reuse the existing variant frame + badge system.
+- Assumption: Power-ups use distinct shapes/colors via config to stand apart from base tiles.
 
 ## Definition of Done (DoD)
 

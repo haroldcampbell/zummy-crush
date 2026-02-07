@@ -239,6 +239,12 @@ function drawTile(x, y, size, tile, config) {
     config.tile.variant;
   const tileSet = getActiveTileSet(config);
   const type = tileSet.types.find((entry) => entry.id === tile.typeId) || tileSet.types[0];
+  const powerUpStyle = tile.powerUp
+    ? config.powerUps?.visuals?.styles?.[tile.powerUp.type] || null
+    : null;
+  const shape = powerUpStyle?.shape || type.shape;
+  const fill = powerUpStyle?.fill || type.fill;
+  const stroke = powerUpStyle?.stroke || type.stroke;
   const iconScale = config.tile.iconScale;
   const iconSize = size * iconScale;
   const centerX = x + size / 2;
@@ -253,7 +259,7 @@ function drawTile(x, y, size, tile, config) {
   ctx.fillStyle = baseFill;
   ctx.fillRect(x, y, size, size);
 
-  drawShape(type.shape, centerX, centerY, iconSize / 2, type.fill, type.stroke);
+  drawShape(shape, centerX, centerY, iconSize / 2, fill, stroke);
 
   if (variantMode === "powerup") {
     const badgeText = getPowerUpBadgeText(tile, config);

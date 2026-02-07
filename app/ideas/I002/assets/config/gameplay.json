@@ -130,7 +130,24 @@
     "visuals": {
       "lineClearBadge": "L",
       "colorClearBadge": "C",
-      "megaBadge": "M"
+      "megaBadge": "M",
+      "styles": {
+        "line-clear": {
+          "shape": "square",
+          "fill": "#f3c77a",
+          "stroke": "#7a4b12"
+        },
+        "color-clear": {
+          "shape": "star",
+          "fill": "#f0a3b5",
+          "stroke": "#7a2f3b"
+        },
+        "mega": {
+          "shape": "diamond",
+          "fill": "#ffd27d",
+          "stroke": "#6b4a10"
+        }
+      }
     }
   }
 }
