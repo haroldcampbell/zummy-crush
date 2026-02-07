@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rotate and Match (I002)</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hud">
+        <div>
+          <h1>Rotate and Match</h1>
+          <p>Drag a row or column to rotate, then release to snap.</p>
+        </div>
+        <button id="reset" type="button">Reset</button>
+      </header>
+      <section class="board-panel">
+        <canvas id="board" width="360" height="360"></canvas>
+      </section>
+      <footer class="footnote">
+        <span id="status">Ready</span>
+      </footer>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

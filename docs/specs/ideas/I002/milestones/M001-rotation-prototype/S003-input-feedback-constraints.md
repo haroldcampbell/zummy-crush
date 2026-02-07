@@ -32,6 +32,11 @@ Rotation input needs strong feedback so players understand which line is active 
 
 - Consider slight scale or tint on active tiles
 
+## Notes
+
+- Assumption: Line highlight is a translucent overlay across the active row/column.
+- Assumption: Moves cancel if release occurs before axis selection.
+
 ## Data / State
 
 - Input state (idle, selecting, dragging, snapping)
@@ -47,6 +52,6 @@ Rotation input needs strong feedback so players understand which line is active 
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

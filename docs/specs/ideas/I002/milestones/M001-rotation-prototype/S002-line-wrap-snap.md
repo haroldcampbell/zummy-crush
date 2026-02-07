@@ -33,6 +33,11 @@ Rotation must wrap within the dragged row or column and snap to an integer offse
 
 - While dragging, show tiles moving continuously; on release, animate a short snap
 
+## Notes
+
+- Assumption: Snap uses nearest integer offset (round) rather than floor/ceil.
+- Assumption: Snap animation is brief (~150-200ms) to keep input responsive.
+
 ## Data / State
 
 - Line length (board width/height)
@@ -49,6 +54,6 @@ Rotation must wrap within the dragged row or column and snap to an integer offse
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

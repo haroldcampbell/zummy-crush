@@ -1,0 +1,101 @@
+{
+  "board": {
+    "rows": 8,
+    "cols": 8,
+    "tileSize": 34,
+    "gap": 4,
+    "padding": 8,
+    "maxWidth": 320
+  },
+  "input": {
+    "dragThresholdPx": 10,
+    "snapMs": 160
+  },
+  "tile": {
+    "iconScale": 0.78,
+    "variant": "base"
+  },
+  "tileSet": {
+    "active": "runes",
+    "variants": {
+      "runes": {
+        "name": "Runes",
+        "types": [
+          {
+            "id": "sun",
+            "shape": "diamond",
+            "fill": "#f2b446",
+            "stroke": "#7a4b12"
+          },
+          {
+            "id": "moon",
+            "shape": "circle",
+            "fill": "#4fb6c2",
+            "stroke": "#1f4c52"
+          },
+          {
+            "id": "flame",
+            "shape": "triangle",
+            "fill": "#e66a5c",
+            "stroke": "#7a2f27"
+          },
+          {
+            "id": "leaf",
+            "shape": "hex",
+            "fill": "#6fbf73",
+            "stroke": "#2f5a34"
+          }
+        ]
+      },
+      "gems": {
+        "name": "Gems",
+        "types": [
+          {
+            "id": "amber",
+            "shape": "square",
+            "fill": "#f0a84f",
+            "stroke": "#6b4317"
+          },
+          {
+            "id": "sapphire",
+            "shape": "oval",
+            "fill": "#4c7fd9",
+            "stroke": "#243c73"
+          },
+          {
+            "id": "ruby",
+            "shape": "star",
+            "fill": "#d04f6a",
+            "stroke": "#6d2436"
+          },
+          {
+            "id": "jade",
+            "shape": "drop",
+            "fill": "#5fbf9a",
+            "stroke": "#2f5c4e"
+          }
+        ]
+      }
+    }
+  },
+  "variantStyle": {
+    "stroke": "#f6d36a",
+    "glow": "#f9f1c1",
+    "badge": {
+      "enabled": true,
+      "text": "P",
+      "fill": "#3a2a14",
+      "textColor": "#f9f1c1"
+    }
+  },
+  "render": {
+    "background": "#1c1a16",
+    "panel": "#2a2620"
+  },
+  "debug": {
+    "forceVariant": null
+  },
+  "features": {
+    "matchesEnabled": false
+  }
+}
