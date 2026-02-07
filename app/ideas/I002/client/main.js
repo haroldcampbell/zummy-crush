@@ -17,6 +17,11 @@ const statusEl = document.getElementById("status");
 
 let swRegistration = null;
 
+const TAP_SCALE_FALLBACK = {
+  scaleDown: 0,
+  scaleDurationMs: 0,
+};
+
 const state = {
   config: null,
   tileTypes: [],
@@ -29,6 +34,7 @@ const state = {
     active: false,
     index: 0,
   },
+  now: 0,
 };
 
 const pointerState = {
@@ -127,6 +133,10 @@ function startDrag(event) {
   pointerState.index = null;
   pointerState.offsetPx = 0;
   canvas.setPointerCapture(event.pointerId);
+  const boardPos = screenToBoard(pointerState.startX, pointerState.startY);
+  const { row, col } = pickLineIndex(boardPos.x, boardPos.y);
+  const tile = state.grid[row]?.[col];
+  if (tile) tile.tapImpactStart = state.now;
   setStatus("Selecting line...");
 }
 
@@ -148,6 +158,17 @@ function updateDrag(event) {
     const boardPos = screenToBoard(pointerState.startX, pointerState.startY);
     const { row, col } = pickLineIndex(boardPos.x, boardPos.y);
     pointerState.index = pointerState.axis === "row" ? row : col;
+    if (pointerState.axis === "row") {
+      for (let c = 0; c < state.cols; c += 1) {
+        const tile = state.grid[pointerState.index]?.[c];
+        if (tile) tile.tapImpactStart = state.now;
+      }
+    } else {
+      for (let r = 0; r < state.rows; r += 1) {
+        const tile = state.grid[r]?.[pointerState.index];
+        if (tile) tile.tapImpactStart = state.now;
+      }
+    }
   }
 
   pointerState.offsetPx = pointerState.axis === "row" ? dx : dy;
@@ -213,7 +234,13 @@ function drawTile(x, y, size, tile, config) {
   const iconSize = size * iconScale;
   const centerX = x + size / 2;
   const centerY = y + size / 2;
+  const tapConfig = config.physics?.tap || TAP_SCALE_FALLBACK;
+  const scale = computeTapScale(state.now, tile.tapImpactStart, tapConfig.scaleDurationMs, tapConfig.scaleDown);
 
+  ctx.save();
+  ctx.translate(centerX, centerY);
+  ctx.scale(scale, scale);
+  ctx.translate(-centerX, -centerY);
   ctx.fillStyle = baseFill;
   ctx.fillRect(x, y, size, size);
 
@@ -222,6 +249,7 @@ function drawTile(x, y, size, tile, config) {
   if (variantMode === "powerup") {
     drawVariantFrame(x, y, size, config.variantStyle);
   }
+  ctx.restore();
 }
 
 function drawShape(shape, cx, cy, radius, fill, stroke) {
@@ -411,6 +439,7 @@ function drawActiveLine(active) {
 }
 
 function step(timestamp) {
+  state.now = timestamp;
   updateAnimation(timestamp);
   if (state.snapping) {
     const elapsed = timestamp - state.snapping.start;
@@ -642,6 +671,14 @@ function easeCascade(t, elasticity, decel) {
   const wobble =
     Math.sin(clamped * Math.PI * 2) * (1 - clamped) * Math.min(elasticity, 1) * 0.12;
   return Math.min(Math.max(base - wobble, 0), 1);
+}
+
+function computeTapScale(now, tapStart, durationMs, scaleDown) {
+  if (!tapStart || durationMs <= 0 || scaleDown <= 0) return 1;
+  const elapsed = now - tapStart;
+  if (elapsed >= durationMs) return 1;
+  const progress = Math.min(Math.max(elapsed / durationMs, 0), 1);
+  return 1 - scaleDown * (1 - progress);
 }
 
 function delay(ms) {
