@@ -40,7 +40,7 @@ Row/column rotation feels rigid; a subtle spacing shift can sell friction and di
 - Assumption: Implemented as a render-only offset without changing grid state.
 - Config: `input.dragFriction` with `enabled`, `maxPx` (px), and `maxTiles` (tiles).
 - Repulsion should remain subtle; avoid visible gaps during drag.
-- Status: Removed from implementation due to visual artifacts; revisit if needed.
+- Status: Will not implement due to visual artifacts; see `docs/ideas/I002/xdrs.md` (XDR-002).
 
 ## Definition of Done (DoD)
 
@@ -52,7 +52,7 @@ Row/column rotation feels rigid; a subtle spacing shift can sell friction and di
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete (will not implement per XDR-002)
+- [x] Tests added/updated (not applicable)
+- [x] Docs updated

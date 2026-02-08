@@ -29,7 +29,7 @@ Improve spawn and cascade animations so new tiles fall in with a physical feel s
 - [x] S001 - Port Physics Utilities from I001
 - [x] S002 - Physics-Based Spawn + Cascade Animation
 - [x] S003 - Tuning Controls + Baseline Update
-- [ ] S004 - Drag Friction Spacing
+- [x] S004 - Drag Friction Spacing (WNI; XDR-002)
 
 ## Dependencies
 
