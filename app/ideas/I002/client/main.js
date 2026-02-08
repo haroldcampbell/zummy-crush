@@ -43,6 +43,11 @@ const state = {
   now: 0,
   score: 0,
   preselect: null,
+  lastFrameTime: 0,
+  vfx: {
+    particles: [],
+    dropped: 0,
+  },
 };
 
 const pointerState = {
@@ -522,6 +527,12 @@ function drawGrid() {
   ) {
     drawMatchPreview();
   }
+
+  drawParticles();
+
+  if (state.config.debug?.vfxStats) {
+    drawVfxStats();
+  }
 }
 
 function drawMatchPreview() {
@@ -538,6 +549,17 @@ function drawMatchPreview() {
     const y = originY + row * cell + 2;
     ctx.strokeRect(x, y, cell - 4, cell - 4);
   });
+  ctx.restore();
+}
+
+function drawVfxStats() {
+  ctx.save();
+  ctx.fillStyle = "rgba(34, 34, 34, 0.7)";
+  ctx.font = "11px Trebuchet MS";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "top";
+  const label = `particles: ${state.vfx.particles.length} (dropped ${state.vfx.dropped})`;
+  ctx.fillText(label, canvas.width - 8, 8);
   ctx.restore();
 }
 
@@ -585,8 +607,11 @@ function drawActiveLine(active) {
 }
 
 function step(timestamp) {
+  const deltaMs = state.lastFrameTime ? timestamp - state.lastFrameTime : 16;
+  state.lastFrameTime = timestamp;
   state.now = timestamp;
   updateAnimation(timestamp);
+  updateParticles(deltaMs);
   if (state.snapping) {
     const elapsed = timestamp - state.snapping.start;
     const t = clamp(elapsed / state.snapping.duration, 0, 1);
@@ -891,6 +916,79 @@ function computeRepulsionOffsets(entries, tileSize, physics = {}) {
     offsets.set(tile, offset);
   }
   return offsets;
+}
+
+function spawnParticles(origin, overrides = {}) {
+  const vfx = state.config.vfx || {};
+  if (vfx.enabled === false) return;
+  const defaults = vfx.default || {};
+  const count = overrides.count ?? defaults.count ?? 0;
+  const maxParticles = vfx.maxParticles ?? 0;
+  const colors = overrides.colorPalette || defaults.colorPalette || ["#fff"];
+  const lifeMs = overrides.lifeMs ?? defaults.lifeMs ?? 600;
+  const sizePx = overrides.sizePx ?? defaults.sizePx ?? 3;
+  const speed = overrides.speedPxPerMs ?? defaults.speedPxPerMs ?? 0.15;
+  const spread = overrides.spreadRadians ?? defaults.spreadRadians ?? Math.PI * 2;
+  const gravity = overrides.gravityPxPerMs ?? vfx.gravityPxPerMs ?? 0;
+  const alphaFalloff = overrides.alphaFalloff ?? vfx.alphaFalloff ?? 0;
+  const startAngle = overrides.startAngle ?? -Math.PI / 2;
+
+  for (let i = 0; i < count; i += 1) {
+    if (state.vfx.particles.length >= maxParticles) {
+      state.vfx.dropped += 1;
+      break;
+    }
+    const angle = startAngle + (Math.random() - 0.5) * spread;
+    const velocity = speed * (0.6 + Math.random() * 0.8);
+    const color = colors[Math.floor(Math.random() * colors.length)] || "#fff";
+    state.vfx.particles.push({
+      x: origin.x,
+      y: origin.y,
+      vx: Math.cos(angle) * velocity,
+      vy: Math.sin(angle) * velocity,
+      lifeMs,
+      ageMs: 0,
+      sizePx: sizePx * (0.7 + Math.random() * 0.6),
+      color,
+      gravity,
+      alphaFalloff,
+    });
+  }
+}
+
+function updateParticles(deltaMs) {
+  const particles = state.vfx.particles;
+  for (let i = particles.length - 1; i >= 0; i -= 1) {
+    const p = particles[i];
+    p.ageMs += deltaMs;
+    if (p.ageMs >= p.lifeMs) {
+      particles.splice(i, 1);
+      continue;
+    }
+    p.vy += p.gravity * deltaMs;
+    p.x += p.vx * deltaMs;
+    p.y += p.vy * deltaMs;
+  }
+}
+
+function drawParticles() {
+  const particles = state.vfx.particles;
+  if (!particles.length) return;
+  ctx.save();
+  particles.forEach((p) => {
+    const lifeRatio = Math.min(Math.max(p.ageMs / p.lifeMs, 0), 1);
+    let alpha = 1 - lifeRatio;
+    if (p.alphaFalloff) {
+      alpha = Math.max(0, alpha - p.alphaFalloff * p.ageMs);
+    }
+    if (alpha <= 0) return;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.sizePx / 2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
 }
 
 function delay(ms) {

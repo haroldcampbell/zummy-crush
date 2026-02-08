@@ -73,7 +73,8 @@
   "debug": {
     "forceVariant": null,
     "enableStateExport": true,
-    "matchPreview": false
+    "matchPreview": false,
+    "vfxStats": false
   },
   "features": {
     "matchesEnabled": true
@@ -195,6 +196,20 @@
           "stroke": "#0b0b0b"
         }
       }
+    }
+  },
+  "vfx": {
+    "enabled": true,
+    "maxParticles": 500,
+    "gravityPxPerMs": 0.0006,
+    "alphaFalloff": 0.0025,
+    "default": {
+      "count": 14,
+      "lifeMs": 650,
+      "sizePx": 3,
+      "speedPxPerMs": 0.16,
+      "spreadRadians": 2.6,
+      "colorPalette": ["#f2b446", "#4fb6c2", "#e66a5c", "#6fbf73"]
     }
   }
 }
