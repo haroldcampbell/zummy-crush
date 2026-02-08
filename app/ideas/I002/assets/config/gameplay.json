@@ -72,7 +72,8 @@
   },
   "debug": {
     "forceVariant": null,
-    "enableStateExport": true
+    "enableStateExport": true,
+    "matchPreview": false
   },
   "features": {
     "matchesEnabled": true

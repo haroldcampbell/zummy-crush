@@ -513,6 +513,32 @@ function drawGrid() {
       state.config
     );
   });
+
+  if (
+    state.config.debug?.matchPreview &&
+    !state.dragging &&
+    !state.snapping &&
+    !state.cascade.active
+  ) {
+    drawMatchPreview();
+  }
+}
+
+function drawMatchPreview() {
+  const matches = findMatches(state.grid);
+  if (!matches.size) return;
+  const { cell } = getBoardMetrics();
+  const { x: originX, y: originY } = boardOrigin();
+  ctx.save();
+  ctx.strokeStyle = "rgba(90, 76, 67, 0.45)";
+  ctx.lineWidth = 2;
+  matches.forEach((key) => {
+    const [row, col] = key.split(",").map(Number);
+    const x = originX + col * cell + 2;
+    const y = originY + row * cell + 2;
+    ctx.strokeRect(x, y, cell - 4, cell - 4);
+  });
+  ctx.restore();
 }
 
 function drawLineHighlight(axis, index, options = {}) {
