@@ -25,6 +25,28 @@ const menuPanel = document.getElementById("menu-panel");
 const menuInfo = document.getElementById("menu-info");
 let helpTabsInitialized = false;
 
+function sizeHelpContent() {
+  if (!helpContent) return;
+  const panels = Array.from(helpContent.querySelectorAll(".help-panel"));
+  if (!panels.length) return;
+  const previousHidden = panels.map((panel) => panel.hidden);
+  panels.forEach((panel) => {
+    panel.hidden = false;
+  });
+  let maxHeight = 0;
+  panels.forEach((panel) => {
+    maxHeight = Math.max(maxHeight, panel.offsetHeight);
+  });
+  previousHidden.forEach((hidden, index) => {
+    panels[index].hidden = hidden;
+  });
+  const cap = Math.floor(window.innerHeight * 0.7);
+  const target = Math.min(maxHeight, cap);
+  helpContent.style.minHeight = `${target}px`;
+  helpContent.style.maxHeight = `${cap}px`;
+  helpContent.style.overflowY = "auto";
+}
+
 let swRegistration = null;
 
 const TAP_SCALE_FALLBACK = {
@@ -141,19 +163,22 @@ function buildHelpContent() {
   };
   return `
     <div class="help-tabs" role="tablist" aria-label="Scoring guide tabs">
-      <button class="help-tab is-active" type="button" role="tab" aria-selected="true" data-tab="scoring">Scoring</button>
+      <button class="help-tab is-active" type="button" role="tab" aria-selected="true" data-tab="scoring">Score Basics</button>
+      <button class="help-tab" type="button" role="tab" aria-selected="false" data-tab="bonuses">Match Bonuses</button>
       <button class="help-tab" type="button" role="tab" aria-selected="false" data-tab="powerups">Power-Ups</button>
     </div>
     <div class="help-panel" data-panel="scoring">
-      <div><strong>Score Basics</strong></div>
+      <div class="help-heading"><strong>Score Basics</strong></div>
       <div>Every tile in a match adds its base value.</div>
       <ul class="help-list">${tileRow || "<li>No tile values configured</li>"}</ul>
-      <div><strong>Match Bonuses</strong></div>
+    </div>
+    <div class="help-panel" data-panel="bonuses" hidden>
+      <div class="help-heading"><strong>Match Bonuses</strong></div>
       <ul class="help-list">${bonuses || "<li>No bonuses configured</li>"}</ul>
       <div class="note">Longer matches stack base points plus the listed bonus.</div>
     </div>
     <div class="help-panel" data-panel="powerups" hidden>
-      <div><strong>Power-Ups</strong></div>
+      <div class="help-heading"><strong>Power-Ups</strong></div>
       <ul class="help-list">
         <li class="help-row"><span class="help-icon">${powerIcon(match4Type)}</span><span><strong>${match4Type}</strong>: created by a Match 4 of the same color.</span></li>
         <li class="help-row"><span class="help-icon">${powerIcon(match5Type)}</span><span><strong>${match5Type}</strong>: created by a Match 5 of the same color.</span></li>
@@ -198,6 +223,7 @@ function openHelp() {
   if (helpContent) helpContent.innerHTML = buildHelpContent();
   setupHelpTabs();
   setHelpTab("scoring");
+  sizeHelpContent();
   helpModal.hidden = false;
 }
 

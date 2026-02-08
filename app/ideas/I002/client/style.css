@@ -21,10 +21,7 @@ body {
 	align-items: center;
 	justify-content: center;
 	background: #f6f4f0;
-	padding: calc(var(--shell-padding) + var(--safe-top))
-		calc(var(--shell-padding) + var(--safe-right))
-		calc(var(--shell-padding) + var(--safe-bottom))
-		calc(var(--shell-padding) + var(--safe-left));
+	padding: calc(var(--shell-padding) + var(--safe-top)) calc(var(--shell-padding) + var(--safe-right)) calc(var(--shell-padding) + var(--safe-bottom)) calc(var(--shell-padding) + var(--safe-left));
 }
 
 .shell {
@@ -165,127 +162,147 @@ canvas {
 }
 
 .footnote {
-  font-size: 12px;
-  color: #5a4c43;
+	font-size: 12px;
+	color: #5a4c43;
 }
 
 .help-button {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  border: 2px solid #2b2b2b;
-  background: #fff;
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+	position: fixed;
+	right: 18px;
+	bottom: 18px;
+	border: 2px solid #2b2b2b;
+	background: #fff;
+	border-radius: 10px;
+	padding: 8px 12px;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
 }
 
 .help-modal {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  z-index: 30;
+	position: fixed;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	z-index: 30;
 }
 
 .help-modal[hidden] {
-  display: none;
+	display: none;
 }
 
 .help-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.35);
 }
 
 .help-dialog {
-  position: relative;
-  width: min(88vw, 420px);
-  background: #fdfbf8;
-  border-radius: 16px;
-  padding: 16px;
-  border: 2px solid #2b2b2b;
-  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.2);
-  z-index: 1;
+	position: relative;
+	width: min(88vw, 420px);
+	background: #fdfbf8;
+	border-radius: 16px;
+	padding: 16px;
+	height: 300px;
+	border: 2px solid #2b2b2b;
+	box-shadow: 0 18px 32px rgba(0, 0, 0, 0.2);
+	z-index: 1;
+	display: grid;
+	grid-template-rows: auto 1fr;
 }
 
 .help-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
 }
 
 .help-header h2 {
-  margin: 0;
-  font-size: 18px;
+	margin: 0;
+	font-size: 18px;
 }
 
 .help-close {
-  border: 2px solid #2b2b2b;
-  background: #fff;
-  border-radius: 10px;
-  padding: 4px 8px;
-  font-size: 12px;
-  cursor: pointer;
+	border: 2px solid #2b2b2b;
+	background: #fff;
+	border-radius: 10px;
+	padding: 4px 8px;
+	font-size: 12px;
+	cursor: pointer;
 }
 
 .help-content {
-  margin-top: 12px;
-  display: grid;
-  gap: 10px;
-  font-size: 13px;
-  color: #2b2b2b;
+	margin-top: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	font-size: 13px;
+	color: #2b2b2b;
+	overflow-y: auto;
 }
 
 .help-content .note {
-  color: #5a4c43;
-  font-size: 12px;
+	color: #5a4c43;
+	font-size: 12px;
+	padding-top: 6px;
 }
 
 .help-tabs {
-  display: flex;
-  gap: 8px;
+	display: flex;
+	gap: 0;
+	border-bottom: 2px solid #2b2b2b;
+	height: 32px;
 }
 
 .help-tab {
-  border: 2px solid #2b2b2b;
-  background: #fff;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: pointer;
+	border: 2px solid #2b2b2b;
+	border-bottom: none;
+	background: #f6f4f0;
+	border-radius: 10px 10px 0 0;
+	padding: 0 12px;
+	font-size: 12px;
+	cursor: pointer;
+	margin-right: 6px;
+	height: 32px;
+	display: grid;
+	place-items: center;
 }
 
 .help-tab.is-active {
-  background: #2b2b2b;
-  color: #fff;
+	background: #fdfbf8;
+	color: #222;
+	position: relative;
+	top: 2px;
+}
+
+.help-heading {
+	margin-bottom: 5px;
 }
 
 .help-list {
-  margin: 0;
-  padding-left: 18px;
-  display: grid;
-  gap: 8px;
+	margin: 0;
+	padding-left: 0;
+	list-style: none;
+	display: grid;
+	gap: 8px;
 }
 
 .help-row {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px;
-  align-items: center;
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 8px;
+	align-items: center;
 }
 
 .help-icon {
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
+	width: 22px;
+	height: 22px;
+	display: grid;
+	place-items: center;
 }
 
 .help-icon svg {
-  display: block;
+	display: block;
 }
