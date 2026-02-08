@@ -573,6 +573,15 @@ function drawVfxStats() {
   ctx.restore();
 }
 
+function getCellCenter(row, col) {
+  const { cell } = getBoardMetrics();
+  const { x: originX, y: originY } = boardOrigin();
+  return {
+    x: originX + col * cell + state.config.board.tileSize / 2,
+    y: originY + row * cell + state.config.board.tileSize / 2,
+  };
+}
+
 function emitMatchClearVfx(runs) {
   const vfx = state.config.vfx?.matchClear;
   if (!vfx?.enabled) return;
@@ -612,6 +621,64 @@ function emitMatchClearVfx(runs) {
         spawnParticles(center, { ...dirConfig, startAngle: Math.PI / 2 });
       }
     }
+  });
+}
+
+function emitPowerUpCreateVfx(position, powerUpType) {
+  const vfx = state.config.vfx?.powerUp;
+  if (!vfx) return;
+  const tile = state.grid[position.row]?.[position.col];
+  const color = getTileFillColor(tile, state.config);
+  spawnParticles(getCellCenter(position.row, position.col), {
+    count: vfx.createBurstCount,
+    lifeMs: vfx.createBurstLifeMs,
+    sizePx: vfx.explosionSizePx ?? 3,
+    speedPxPerMs: (vfx.explosionSpeedPxPerMs ?? 0.2) * 0.6,
+    spreadRadians: Math.PI * 2,
+    colorPalette: [color],
+  });
+}
+
+function emitPowerUpActivateVfx(position, powerUpType) {
+  const vfx = state.config.vfx?.powerUp;
+  if (!vfx) return;
+  const tile = state.grid[position.row]?.[position.col];
+  const baseColor = getTileFillColor(tile, state.config);
+  const colors = ["void", "tornado"].includes(powerUpType)
+    ? vfx.fireColors || [baseColor]
+    : [baseColor];
+  const center = getCellCenter(position.row, position.col);
+  spawnParticles(center, {
+    count: vfx.activateBurstCount,
+    lifeMs: vfx.activateBurstLifeMs,
+    sizePx: vfx.explosionSizePx ?? 3,
+    speedPxPerMs: vfx.explosionSpeedPxPerMs ?? 0.22,
+    spreadRadians: Math.PI * 2,
+    colorPalette: colors,
+  });
+  if (["void", "tornado"].includes(powerUpType)) {
+    spawnParticles(center, {
+      count: vfx.explosionCount,
+      lifeMs: vfx.explosionLifeMs,
+      sizePx: vfx.explosionSizePx ?? 4,
+      speedPxPerMs: vfx.explosionSpeedPxPerMs ?? 0.24,
+      spreadRadians: Math.PI * 2,
+      colorPalette: colors,
+    });
+  }
+}
+
+function emitPowerUpTrailVfx(position, powerUpType) {
+  const vfx = state.config.vfx?.powerUp;
+  if (!vfx) return;
+  const colors = vfx.fireColors || ["#fff"];
+  spawnParticles(getCellCenter(position.row, position.col), {
+    count: Math.max(2, Math.floor((vfx.activateBurstCount || 12) / 6)),
+    lifeMs: vfx.trailLifeMs,
+    sizePx: vfx.trailSizePx,
+    speedPxPerMs: vfx.trailSpeedPxPerMs,
+    spreadRadians: Math.PI * 2,
+    colorPalette: colors,
   });
 }
 
@@ -1055,11 +1122,14 @@ function getPowerUpMatchId(tile, powerUpType, config) {
   return `${powerUpType}:${tile.typeId}`;
 }
 
-function applyPowerUp(tile, powerUpType, config) {
+function applyPowerUp(tile, powerUpType, config, position) {
   if (!tile) return;
   tile.powerUp = { type: powerUpType };
   tile.variant = "powerup";
   tile.matchId = getPowerUpMatchId(tile, powerUpType, config);
+  if (position) {
+    emitPowerUpCreateVfx(position, powerUpType);
+  }
 }
 
 function buildAreaClearSet(centerRow, centerCol, radius) {
@@ -1170,6 +1240,7 @@ async function runTornadoEffect(origin, tileTypes, variant, cascadeDelay, config
       updateScoreDisplay();
       await applyClearAndRefill(clearSet, tileTypes, variant, cascadeDelay);
     }
+    emitPowerUpTrailVfx(position, "tornado");
     position = pickTornadoStep(position);
     const elapsed = performance.now() - start;
     const waitMs = stepMs - elapsed;
@@ -1213,7 +1284,7 @@ async function resolveCascade(matchSet) {
       if (!reservedSpawnCells.has(spawnKey) && powerUps.void?.enabled !== false) {
         const tile = state.grid[spawnCell.row][spawnCell.col];
         if (tile) {
-          applyPowerUp(tile, "void", state.config);
+          applyPowerUp(tile, "void", state.config, spawnCell);
           reservedSpawnCells.add(spawnKey);
           clearSet.delete(spawnKey);
         }
@@ -1226,7 +1297,7 @@ async function resolveCascade(matchSet) {
       if (!reservedSpawnCells.has(spawnKey) && powerUps.tornado?.enabled !== false) {
         const tile = state.grid[spawnCell.row][spawnCell.col];
         if (tile) {
-          applyPowerUp(tile, "tornado", state.config);
+          applyPowerUp(tile, "tornado", state.config, spawnCell);
           reservedSpawnCells.add(spawnKey);
           clearSet.delete(spawnKey);
         }
@@ -1239,7 +1310,7 @@ async function resolveCascade(matchSet) {
       if (!reservedSpawnCells.has(spawnKey)) {
         const tile = state.grid[spawnCell.row][spawnCell.col];
         if (tile) {
-          applyPowerUp(tile, match4Type, state.config);
+          applyPowerUp(tile, match4Type, state.config, spawnCell);
           reservedSpawnCells.add(spawnKey);
           clearSet.delete(spawnKey);
         }
@@ -1251,7 +1322,7 @@ async function resolveCascade(matchSet) {
       if (!reservedSpawnCells.has(spawnKey)) {
         const tile = state.grid[spawnCell.row][spawnCell.col];
         if (tile) {
-          applyPowerUp(tile, match5Type, state.config);
+          applyPowerUp(tile, match5Type, state.config, spawnCell);
           reservedSpawnCells.add(spawnKey);
           clearSet.delete(spawnKey);
         }
@@ -1278,8 +1349,10 @@ async function resolveCascade(matchSet) {
   if (powerUpActivations.length) {
     for (const activation of powerUpActivations) {
       if (activation.type === "void") {
+        emitPowerUpActivateVfx(activation, "void");
         await runVoidEffect(activation, tileTypes, variant, cascadeDelay, powerUps.void || {});
       } else if (activation.type === "tornado") {
+        emitPowerUpActivateVfx(activation, "tornado");
         await runTornadoEffect(
           activation,
           tileTypes,

@@ -223,6 +223,20 @@
         "spreadRadians": 0.9,
         "speedPxPerMs": 0.22
       }
+    },
+    "powerUp": {
+      "createBurstCount": 14,
+      "createBurstLifeMs": 520,
+      "activateBurstCount": 32,
+      "activateBurstLifeMs": 760,
+      "explosionCount": 48,
+      "explosionLifeMs": 920,
+      "explosionSizePx": 4,
+      "explosionSpeedPxPerMs": 0.24,
+      "trailLifeMs": 320,
+      "trailSizePx": 3,
+      "trailSpeedPxPerMs": 0.08,
+      "fireColors": ["#ffb347", "#ff7b54", "#ff3d5a", "#ffd27d"]
     }
   }
 }
