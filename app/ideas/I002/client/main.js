@@ -348,6 +348,16 @@ function drawTile(x, y, size, tile, config) {
   ctx.restore();
 }
 
+function getTileFillColor(tile, config) {
+  if (!tile) return "#fff";
+  const tileSet = getActiveTileSet(config);
+  const type = tileSet.types.find((entry) => entry.id === tile.typeId) || tileSet.types[0];
+  const powerUpStyle = tile.powerUp
+    ? config.powerUps?.visuals?.styles?.[tile.powerUp.type] || null
+    : null;
+  return powerUpStyle?.fill || type.fill;
+}
+
 function drawShape(shape, cx, cy, radius, fill, stroke) {
   ctx.save();
   ctx.fillStyle = fill;
@@ -561,6 +571,48 @@ function drawVfxStats() {
   const label = `particles: ${state.vfx.particles.length} (dropped ${state.vfx.dropped})`;
   ctx.fillText(label, canvas.width - 8, 8);
   ctx.restore();
+}
+
+function emitMatchClearVfx(runs) {
+  const vfx = state.config.vfx?.matchClear;
+  if (!vfx?.enabled) return;
+  const { cell } = getBoardMetrics();
+  const { x: originX, y: originY } = boardOrigin();
+  runs.forEach((run) => {
+    const centerCell = run.cells[Math.floor(run.cells.length / 2)];
+    const centerTile = state.grid[centerCell.row]?.[centerCell.col];
+    const center = {
+      x: originX + centerCell.col * cell + state.config.board.tileSize / 2,
+      y: originY + centerCell.row * cell + state.config.board.tileSize / 2,
+    };
+    const color = getTileFillColor(centerTile, state.config);
+    const burstConfig = {
+      count: vfx.burstCount,
+      lifeMs: vfx.burstLifeMs,
+      sizePx: vfx.burstSizePx,
+      speedPxPerMs: vfx.burstSpeedPxPerMs,
+      spreadRadians: Math.PI * 2,
+      colorPalette: vfx.burstColorMode === "tile" ? [color] : undefined,
+    };
+    spawnParticles(center, burstConfig);
+    if (vfx.directional?.enabled && run.length >= 4) {
+      const dirConfig = {
+        count: Math.max(4, Math.floor((vfx.burstCount || 10) / 2)),
+        lifeMs: vfx.burstLifeMs,
+        sizePx: vfx.burstSizePx,
+        speedPxPerMs: vfx.directional.speedPxPerMs ?? vfx.burstSpeedPxPerMs,
+        spreadRadians: vfx.directional.spreadRadians ?? 0.8,
+        colorPalette: vfx.burstColorMode === "tile" ? [color] : undefined,
+      };
+      if (run.orientation === "row") {
+        spawnParticles(center, { ...dirConfig, startAngle: 0 });
+        spawnParticles(center, { ...dirConfig, startAngle: Math.PI });
+      } else {
+        spawnParticles(center, { ...dirConfig, startAngle: -Math.PI / 2 });
+        spawnParticles(center, { ...dirConfig, startAngle: Math.PI / 2 });
+      }
+    }
+  });
 }
 
 function drawLineHighlight(axis, index, options = {}) {
@@ -1219,6 +1271,7 @@ async function resolveCascade(matchSet) {
 
   state.score += scoreMatches(runs, state.grid);
   updateScoreDisplay();
+  emitMatchClearVfx(runs);
   await delay(matchDelay);
   await applyClearAndRefill(clearSet, tileTypes, variant, cascadeDelay);
 

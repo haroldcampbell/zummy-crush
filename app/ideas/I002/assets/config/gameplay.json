@@ -210,6 +210,19 @@
       "speedPxPerMs": 0.16,
       "spreadRadians": 2.6,
       "colorPalette": ["#f2b446", "#4fb6c2", "#e66a5c", "#6fbf73"]
+    },
+    "matchClear": {
+      "enabled": true,
+      "burstCount": 18,
+      "burstLifeMs": 520,
+      "burstSizePx": 3,
+      "burstSpeedPxPerMs": 0.18,
+      "burstColorMode": "tile",
+      "directional": {
+        "enabled": true,
+        "spreadRadians": 0.9,
+        "speedPxPerMs": 0.22
+      }
     }
   }
 }
