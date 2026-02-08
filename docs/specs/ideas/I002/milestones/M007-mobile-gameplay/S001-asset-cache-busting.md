@@ -23,6 +23,7 @@ Mobile Safari often serves cached assets after deploys, and hard refresh is not 
 - Add a cache-buster version string for `main.js` and `style.css`
 - Version string is easy to bump without rewriting large files
 - Default behavior uses query-string versioning (e.g. `main.js?v=...`)
+- Cache-buster value is configurable via a single in-document setting
 
 ## Non-Functional Requirements
 
