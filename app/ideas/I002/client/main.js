@@ -20,6 +20,9 @@ const helpButton = document.getElementById("help-button");
 const helpModal = document.getElementById("help-modal");
 const helpClose = document.getElementById("help-close");
 const helpContent = document.getElementById("help-content");
+const menuButton = document.getElementById("menu-button");
+const menuPanel = document.getElementById("menu-panel");
+const menuInfo = document.getElementById("menu-info");
 let helpTabsInitialized = false;
 
 let swRegistration = null;
@@ -70,7 +73,13 @@ const pointerState = {
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 function setStatus(text) {
-  if (statusEl) statusEl.textContent = text;
+  if (!statusEl) return;
+  const normalized = text === "Ready" ? "" : text;
+  statusEl.textContent = normalized;
+  const container = statusEl.parentElement;
+  if (container) {
+    container.hidden = !normalized;
+  }
 }
 
 function updateScoreDisplay() {
@@ -194,6 +203,27 @@ function openHelp() {
 function closeHelp() {
   if (!helpModal) return;
   helpModal.hidden = true;
+}
+
+function openMenu() {
+  if (!menuPanel || !menuButton) return;
+  menuPanel.hidden = false;
+  menuButton.setAttribute("aria-expanded", "true");
+}
+
+function closeMenu() {
+  if (!menuPanel || !menuButton) return;
+  menuPanel.hidden = true;
+  menuButton.setAttribute("aria-expanded", "false");
+}
+
+function toggleMenu() {
+  if (!menuPanel) return;
+  if (menuPanel.hidden) {
+    openMenu();
+  } else {
+    closeMenu();
+  }
 }
 function getConfigUrl() {
   return new URL("../assets/config/gameplay.json", window.location.href);
@@ -1659,6 +1689,20 @@ async function init() {
   resetButton.addEventListener("click", resetBoard);
   if (helpButton) helpButton.addEventListener("click", openHelp);
   if (helpClose) helpClose.addEventListener("click", closeHelp);
+  if (menuButton) menuButton.addEventListener("click", toggleMenu);
+  if (menuInfo) {
+    menuInfo.addEventListener("click", () => {
+      closeMenu();
+      openHelp();
+    });
+  }
+  document.addEventListener("click", (event) => {
+    if (!menuPanel || menuPanel.hidden) return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (menuPanel.contains(target) || menuButton?.contains(target)) return;
+    closeMenu();
+  });
   if (helpModal) {
     helpModal.addEventListener("click", (event) => {
       const target = event.target;

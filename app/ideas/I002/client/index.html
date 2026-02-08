@@ -28,6 +28,16 @@
 					<span class="hud-label">Score</span>
 				</div>
 				<div class="hud-actions">
+					<div class="menu">
+						<button id="menu-button" class="menu-button" type="button" aria-haspopup="true" aria-expanded="false">
+							☰
+						</button>
+						<div id="menu-panel" class="menu-panel" role="menu" hidden>
+							<button id="menu-info" class="menu-item" type="button" role="menuitem">
+								Scoring Guide
+							</button>
+						</div>
+					</div>
 					<button id="reset" type="button">Reset</button>
 					<button id="export-state" type="button" hidden>Export State</button>
 				</div>
@@ -36,10 +46,9 @@
 				<div class="score-container"><span id="score-value" class="hud-value">0</span></div>
 				<canvas id="board" width="360" height="360"></canvas>
 			</section>
-			<footer class="footnote">
-				<span id="status">Ready</span>
+			<footer class="footnote" hidden>
+				<span id="status"></span>
 			</footer>
-			<button id="help-button" class="help-button" type="button">Info</button>
 			<div id="help-modal" class="help-modal" hidden>
 				<div class="help-backdrop" data-close="true"></div>
 				<div class="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title">
