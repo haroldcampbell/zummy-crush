@@ -9,7 +9,13 @@
   },
   "input": {
     "dragThresholdPx": 10,
-    "snapMs": 160
+    "snapMs": 160,
+    "affordance": {
+      "enabled": true,
+      "color": "#f6d36a",
+      "opacity": 0.08,
+      "showBothAxis": true
+    }
   },
   "tile": {
     "iconScale": 0.78,

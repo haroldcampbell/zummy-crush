@@ -42,6 +42,7 @@ const state = {
   },
   now: 0,
   score: 0,
+  preselect: null,
 };
 
 const pointerState = {
@@ -179,6 +180,7 @@ function startDrag(event) {
   const { row, col } = pickLineIndex(boardPos.x, boardPos.y);
   const tile = state.grid[row]?.[col];
   if (tile) tile.tapImpactStart = state.now;
+  state.preselect = { row, col, startedAt: state.now };
   setStatus("Selecting line...");
 }
 
@@ -197,6 +199,7 @@ function updateDrag(event) {
       return;
     }
     pointerState.axis = Math.abs(dx) >= Math.abs(dy) ? "row" : "col";
+    state.preselect = null;
     const boardPos = screenToBoard(pointerState.startX, pointerState.startY);
     const { row, col } = pickLineIndex(boardPos.x, boardPos.y);
     pointerState.index = pointerState.axis === "row" ? row : col;
@@ -225,6 +228,7 @@ function updateDrag(event) {
 function endDrag(event) {
   if (pointerState.id !== event.pointerId) return;
   if (isInputLocked({ snapping: state.snapping, cascadeActive: state.cascade.active })) return;
+  state.preselect = null;
 
   const { cell } = getBoardMetrics();
   const axis = pointerState.axis;
@@ -445,6 +449,16 @@ function drawGrid() {
 
   if (state.dragging) {
     drawLineHighlight(state.dragging.axis, state.dragging.index);
+  } else if (state.preselect && !state.snapping) {
+    const affordance = state.config.input?.affordance;
+    if (affordance?.enabled) {
+      const color = affordance.color || "#f6d36a";
+      const opacity = Number.isFinite(affordance.opacity) ? affordance.opacity : 0.08;
+      drawLineHighlight("row", state.preselect.row, { color, opacity });
+      if (affordance.showBothAxis) {
+        drawLineHighlight("col", state.preselect.col, { color, opacity });
+      }
+    }
   }
 
   if (state.animation?.tiles) {
@@ -475,11 +489,14 @@ function drawGrid() {
   });
 }
 
-function drawLineHighlight(axis, index) {
+function drawLineHighlight(axis, index, options = {}) {
   const { cell, boardWidth, boardHeight } = getBoardMetrics();
   const { x: originX, y: originY } = boardOrigin();
+  const color = options.color || "#f6d36a";
+  const opacity = Number.isFinite(options.opacity) ? options.opacity : 0.12;
   ctx.save();
-  ctx.fillStyle = "rgba(246, 211, 106, 0.12)";
+  ctx.fillStyle = color;
+  ctx.globalAlpha = opacity;
   if (axis === "row") {
     ctx.fillRect(originX, originY + index * cell, boardWidth, cell);
   } else {

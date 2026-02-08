@@ -22,6 +22,7 @@ Mobile input can feel imprecise without visual affordances that confirm intent.
 
 - Provide a subtle pre-drag highlight of the selected row/column
 - Keep feedback lightweight and non-distracting
+- Affordance colors/opacities are configurable via input config
 
 ## Non-Functional Requirements
 
