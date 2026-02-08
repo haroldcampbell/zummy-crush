@@ -237,6 +237,24 @@
       "trailSizePx": 3,
       "trailSpeedPxPerMs": 0.08,
       "fireColors": ["#ffb347", "#ff7b54", "#ff3d5a", "#ffd27d"]
+    },
+    "screenShake": {
+      "enabled": true,
+      "durationMs": 260,
+      "intensityPx": 4
+    },
+    "textBurst": {
+      "enabled": true,
+      "lifeMs": 900,
+      "sizePx": 16,
+      "velocityPxPerMs": 0.05,
+      "messages": {
+        "match4": "Match 4",
+        "match5": "Match 5",
+        "bigScore": "1000 Points",
+        "super": "Super!"
+      },
+      "scoreThreshold": 1000
     }
   }
 }

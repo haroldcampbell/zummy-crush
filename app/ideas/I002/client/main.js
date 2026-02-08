@@ -46,7 +46,14 @@ const state = {
   lastFrameTime: 0,
   vfx: {
     particles: [],
+    textBursts: [],
     dropped: 0,
+    shake: {
+      timeLeftMs: 0,
+      durationMs: 0,
+      intensityPx: 0,
+    },
+    shakeOffset: { x: 0, y: 0 },
   },
 };
 
@@ -465,6 +472,9 @@ function drawGrid() {
   ctx.fillStyle = state.config.render.background;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  ctx.save();
+  ctx.translate(state.vfx.shakeOffset.x, state.vfx.shakeOffset.y);
+
   ctx.fillStyle = state.config.render.panel;
   ctx.fillRect(originX - 6, originY - 6, boardWidth + 12, boardHeight + 12);
 
@@ -539,6 +549,9 @@ function drawGrid() {
   }
 
   drawParticles();
+  drawTextBursts();
+
+  ctx.restore();
 
   if (state.config.debug?.vfxStats) {
     drawVfxStats();
@@ -622,6 +635,27 @@ function emitMatchClearVfx(runs) {
       }
     }
   });
+}
+
+function emitMatchTextBursts(runs, matchPoints) {
+  const vfx = state.config.vfx?.textBurst;
+  if (!vfx?.enabled) return;
+  const messages = vfx.messages || {};
+  runs.forEach((run) => {
+    if (run.length < 4) return;
+    const label = run.length >= 5 ? messages.match5 : messages.match4;
+    if (!label) return;
+    const centerCell = run.cells[Math.floor(run.cells.length / 2)];
+    spawnTextBurst(label, getCellCenter(centerCell.row, centerCell.col));
+  });
+  if (matchPoints >= (vfx.scoreThreshold ?? 1000) && messages.bigScore) {
+    const center = getCellCenter(Math.floor(state.rows / 2), Math.floor(state.cols / 2));
+    spawnTextBurst(messages.bigScore, center, { sizePx: (vfx.sizePx || 16) * 1.1 });
+  }
+  if (runs.length >= 2 && messages.super) {
+    const center = getCellCenter(Math.floor(state.rows / 2), Math.floor(state.cols / 2));
+    spawnTextBurst(messages.super, center, { sizePx: (vfx.sizePx || 16) * 1.2 });
+  }
 }
 
 function emitPowerUpCreateVfx(position, powerUpType) {
@@ -731,6 +765,8 @@ function step(timestamp) {
   state.now = timestamp;
   updateAnimation(timestamp);
   updateParticles(deltaMs);
+  updateTextBursts(deltaMs);
+  updateShake(deltaMs);
   if (state.snapping) {
     const elapsed = timestamp - state.snapping.start;
     const t = clamp(elapsed / state.snapping.duration, 0, 1);
@@ -1110,6 +1146,82 @@ function drawParticles() {
   ctx.restore();
 }
 
+function triggerShake(intensityPx, durationMs) {
+  const shake = state.vfx.shake;
+  shake.timeLeftMs = Math.max(shake.timeLeftMs, durationMs);
+  shake.durationMs = Math.max(shake.durationMs, durationMs);
+  shake.intensityPx = Math.max(shake.intensityPx, intensityPx);
+}
+
+function updateShake(deltaMs) {
+  const shake = state.vfx.shake;
+  if (shake.timeLeftMs <= 0) {
+    state.vfx.shakeOffset = { x: 0, y: 0 };
+    return;
+  }
+  shake.timeLeftMs = Math.max(0, shake.timeLeftMs - deltaMs);
+  const t = shake.durationMs > 0 ? shake.timeLeftMs / shake.durationMs : 0;
+  const intensity = shake.intensityPx * t;
+  state.vfx.shakeOffset = {
+    x: (Math.random() * 2 - 1) * intensity,
+    y: (Math.random() * 2 - 1) * intensity,
+  };
+  if (shake.timeLeftMs === 0) {
+    shake.durationMs = 0;
+    shake.intensityPx = 0;
+  }
+}
+
+function spawnTextBurst(text, position, overrides = {}) {
+  if (!text) return;
+  const vfx = state.config.vfx?.textBurst;
+  if (!vfx?.enabled) return;
+  const lifeMs = overrides.lifeMs ?? vfx.lifeMs ?? 900;
+  const sizePx = overrides.sizePx ?? vfx.sizePx ?? 16;
+  const velocity = overrides.velocityPxPerMs ?? vfx.velocityPxPerMs ?? 0.05;
+  state.vfx.textBursts.push({
+    text,
+    x: position.x,
+    y: position.y,
+    vx: (Math.random() - 0.5) * velocity,
+    vy: -velocity * (0.8 + Math.random() * 0.6),
+    lifeMs,
+    ageMs: 0,
+    sizePx,
+  });
+}
+
+function updateTextBursts(deltaMs) {
+  const bursts = state.vfx.textBursts;
+  for (let i = bursts.length - 1; i >= 0; i -= 1) {
+    const burst = bursts[i];
+    burst.ageMs += deltaMs;
+    if (burst.ageMs >= burst.lifeMs) {
+      bursts.splice(i, 1);
+      continue;
+    }
+    burst.x += burst.vx * deltaMs;
+    burst.y += burst.vy * deltaMs;
+  }
+}
+
+function drawTextBursts() {
+  const bursts = state.vfx.textBursts;
+  if (!bursts.length) return;
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  bursts.forEach((burst) => {
+    const lifeRatio = Math.min(Math.max(burst.ageMs / burst.lifeMs, 0), 1);
+    const alpha = Math.max(0, 1 - lifeRatio);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(34, 34, 34, 0.9)";
+    ctx.font = `bold ${burst.sizePx}px Trebuchet MS`;
+    ctx.fillText(burst.text, burst.x, burst.y);
+  });
+  ctx.restore();
+}
+
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -1340,19 +1452,28 @@ async function resolveCascade(matchSet) {
     });
   }
 
-  state.score += scoreMatches(runs, state.grid);
+  const matchPoints = scoreMatches(runs, state.grid);
+  state.score += matchPoints;
   updateScoreDisplay();
   emitMatchClearVfx(runs);
+  emitMatchTextBursts(runs, matchPoints);
   await delay(matchDelay);
   await applyClearAndRefill(clearSet, tileTypes, variant, cascadeDelay);
 
   if (powerUpActivations.length) {
+    const shakeConfig = state.config.vfx?.screenShake;
     for (const activation of powerUpActivations) {
       if (activation.type === "void") {
         emitPowerUpActivateVfx(activation, "void");
+        if (shakeConfig?.enabled) {
+          triggerShake(shakeConfig.intensityPx ?? 4, shakeConfig.durationMs ?? 240);
+        }
         await runVoidEffect(activation, tileTypes, variant, cascadeDelay, powerUps.void || {});
       } else if (activation.type === "tornado") {
         emitPowerUpActivateVfx(activation, "tornado");
+        if (shakeConfig?.enabled) {
+          triggerShake(shakeConfig.intensityPx ?? 4, shakeConfig.durationMs ?? 240);
+        }
         await runTornadoEffect(
           activation,
           tileTypes,
