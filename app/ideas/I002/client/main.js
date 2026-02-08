@@ -16,6 +16,10 @@ const resetButton = document.getElementById("reset");
 const exportButton = document.getElementById("export-state");
 const statusEl = document.getElementById("status");
 const scoreValueEl = document.getElementById("score-value");
+const helpButton = document.getElementById("help-button");
+const helpModal = document.getElementById("help-modal");
+const helpClose = document.getElementById("help-close");
+const helpContent = document.getElementById("help-content");
 
 let swRegistration = null;
 
@@ -57,6 +61,38 @@ function setStatus(text) {
 
 function updateScoreDisplay() {
   if (scoreValueEl) scoreValueEl.textContent = state.score.toLocaleString("en-US");
+}
+
+function buildHelpContent() {
+  const scoring = state.config.scoring || {};
+  const tileValues = scoring.tileValues || {};
+  const bonusByLength = scoring.bonusByLength || {};
+  const rows = Object.entries(tileValues)
+    .map(([shape, value]) => `<li><strong>${shape}</strong>: ${value} points</li>`)
+    .join("");
+  const bonuses = Object.entries(bonusByLength)
+    .sort((a, b) => Number(a[0]) - Number(b[0]))
+    .map(([length, bonus]) => `<li>Match ${length}: +${bonus} bonus</li>`)
+    .join("");
+  return `
+    <div><strong>Score Basics</strong></div>
+    <div>Every tile in a match adds its base value.</div>
+    <ul>${rows || "<li>No tile values configured</li>"}</ul>
+    <div><strong>Match Bonuses</strong></div>
+    <ul>${bonuses || "<li>No bonuses configured</li>"}</ul>
+    <div class="note">Longer matches stack base points plus the listed bonus.</div>
+  `;
+}
+
+function openHelp() {
+  if (!helpModal) return;
+  if (helpContent) helpContent.innerHTML = buildHelpContent();
+  helpModal.hidden = false;
+}
+
+function closeHelp() {
+  if (!helpModal) return;
+  helpModal.hidden = true;
 }
 function getConfigUrl() {
   return new URL("../assets/config/gameplay.json", window.location.href);
@@ -1023,6 +1059,16 @@ async function init() {
   canvas.addEventListener("pointerup", endDrag);
   canvas.addEventListener("pointercancel", endDrag);
   resetButton.addEventListener("click", resetBoard);
+  if (helpButton) helpButton.addEventListener("click", openHelp);
+  if (helpClose) helpClose.addEventListener("click", closeHelp);
+  if (helpModal) {
+    helpModal.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target && target.dataset?.close === "true") {
+        closeHelp();
+      }
+    });
+  }
   if (state.config.debug?.enableStateExport && exportButton) {
     exportButton.hidden = false;
     exportButton.addEventListener("click", downloadState);
