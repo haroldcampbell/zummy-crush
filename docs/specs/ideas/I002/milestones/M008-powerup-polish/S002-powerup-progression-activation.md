@@ -32,11 +32,13 @@ Void behavior (White Square)
 - Tiles continuously fall into the void as they spawn
 - Void affects a 3x3 area centered on the power-up location
 - Tiles animate falling into the void and disappearing
+- Void duration, tick rate, radius, and score multiplier are configurable
 
 Tornado behavior (Black Omni-Circle)
 - On match, tornado persists for a configurable duration (default 3s)
 - Tornado path is random and zig-zaggy
 - Tornado clears tiles it passes over
+- Tornado duration, step rate, clear radius, and score multiplier are configurable
 
 ## Non-Functional Requirements
 

@@ -119,19 +119,41 @@
     "enabled": true,
     "match4": {
       "enabled": true,
-      "type": "line-clear"
+      "type": "square"
     },
     "match5": {
       "enabled": true,
-      "type": "color-clear"
+      "type": "circle"
     },
     "combo": {
-      "enabled": true,
+      "enabled": false,
       "minCount": 2
     },
     "mega": {
-      "enabled": true,
+      "enabled": false,
       "clearMode": "board"
+    },
+    "matchRules": {
+      "colorAgnosticTypes": ["void", "tornado"]
+    },
+    "upgrades": {
+      "squareToVoid": true,
+      "circleToTornado": true,
+      "minRun": 4
+    },
+    "void": {
+      "enabled": true,
+      "durationMs": 3000,
+      "tickMs": 240,
+      "radius": 1,
+      "scoreMultiplier": 1.5
+    },
+    "tornado": {
+      "enabled": true,
+      "durationMs": 3000,
+      "stepMs": 220,
+      "clearRadius": 0,
+      "scoreMultiplier": 1.5
     },
     "visuals": {
       "rotation": {
@@ -146,12 +168,12 @@
         "colors": ["#f2b446", "#4fb6c2", "#e66a5c", "#6fbf73"]
       },
       "styles": {
-        "line-clear": {
+        "square": {
           "shape": "square",
           "fill": "#f3c77a",
           "stroke": "#7a4b12"
         },
-        "color-clear": {
+        "circle": {
           "shape": "circle",
           "fill": "#f0a3b5",
           "stroke": "#7a2f3b"

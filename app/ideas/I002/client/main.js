@@ -793,14 +793,17 @@ function easeCascade(t, elasticity, decel) {
   return Math.min(Math.max(base - wobble, 0), 1);
 }
 
-function scoreMatches(runs) {
+function scoreMatches(runs, grid) {
   const scoring = state.config.scoring || {};
   const tileValues = scoring.tileValues || {};
   const bonusByLength = scoring.bonusByLength || {};
   let points = 0;
   runs.forEach((run) => {
-    const baseValue = tileValues[run.typeId] ?? 0;
-    points += baseValue * run.length;
+    run.cells.forEach((cell) => {
+      const tile = grid[cell.row]?.[cell.col];
+      const baseValue = tileValues[tile?.typeId] ?? 0;
+      points += baseValue;
+    });
     const bonus = bonusByLength[String(run.length)] ?? 0;
     points += bonus;
   });
@@ -868,119 +871,48 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function resolveCascade(matchSet) {
-  const animations = state.config.animations || {};
-  const matchDelay = animations.matchResolveMs ?? 120;
-  const cascadeDelay = animations.cascadeMs ?? 180;
-  const tileTypes = getActiveTileSet(state.config).types;
-  const variant = state.config.tile.variant;
-  const runs = findMatchRuns(state.grid);
-  const powerUps = state.config.powerUps || {};
-  const clearSet = new Set(matchSet);
-  const reservedSpawnCells = new Set();
-  const powerUpCells = [];
-  const runOrientation = new Map();
+function getPowerUpMatchId(tile, powerUpType, config) {
+  if (!tile || !powerUpType) return null;
+  const rules = config.powerUps?.matchRules || {};
+  const colorAgnostic = rules.colorAgnosticTypes || [];
+  if (colorAgnostic.includes(powerUpType)) return powerUpType;
+  return `${powerUpType}:${tile.typeId}`;
+}
 
-  runs.forEach((run) => {
-    run.cells.forEach((cell) => {
-      const key = `${cell.row},${cell.col}`;
-      if (!runOrientation.has(key)) {
-        runOrientation.set(key, run.orientation);
-      }
-    });
-  });
+function applyPowerUp(tile, powerUpType, config) {
+  if (!tile) return;
+  tile.powerUp = { type: powerUpType };
+  tile.variant = "powerup";
+  tile.matchId = getPowerUpMatchId(tile, powerUpType, config);
+}
 
-  matchSet.forEach((key) => {
+function buildAreaClearSet(centerRow, centerCol, radius) {
+  const clearSet = new Set();
+  for (let r = centerRow - radius; r <= centerRow + radius; r += 1) {
+    for (let c = centerCol - radius; c <= centerCol + radius; c += 1) {
+      if (r < 0 || c < 0 || r >= state.rows || c >= state.cols) continue;
+      const tile = state.grid[r]?.[c];
+      if (tile) clearSet.add(`${r},${c}`);
+    }
+  }
+  return clearSet;
+}
+
+function scoreClearSet(clearSet, multiplier = 1) {
+  const scoring = state.config.scoring || {};
+  const tileValues = scoring.tileValues || {};
+  let points = 0;
+  clearSet.forEach((key) => {
     const [row, col] = key.split(",").map(Number);
     const tile = state.grid[row]?.[col];
-    if (tile?.powerUp) powerUpCells.push({ row, col, tile });
+    const baseValue = tileValues[tile?.typeId] ?? 0;
+    points += baseValue * multiplier;
   });
+  return Math.round(points);
+}
 
-  const comboMin = powerUps.combo?.minCount ?? 2;
-  const comboTriggered =
-    powerUps.combo?.enabled !== false &&
-    powerUps.mega?.enabled !== false &&
-    powerUpCells.length >= comboMin;
-  if (comboTriggered) {
-    const spawn = powerUpCells[0];
-    const spawnKey = `${spawn.row},${spawn.col}`;
-    const tile = state.grid[spawn.row][spawn.col];
-    if (tile) {
-      tile.powerUp = { type: "mega" };
-      tile.variant = "powerup";
-      reservedSpawnCells.add(spawnKey);
-      clearSet.delete(spawnKey);
-    }
-  }
-
-  const selectSpawnCell = (run) => run.cells[Math.floor(run.cells.length / 2)];
-
-  runs.forEach((run) => {
-    if (run.length === 4 && powerUps.match4?.enabled !== false) {
-      const spawnCell = selectSpawnCell(run);
-      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
-      if (!reservedSpawnCells.has(spawnKey)) {
-        const tile = state.grid[spawnCell.row][spawnCell.col];
-        if (tile) {
-          tile.powerUp = { type: powerUps.match4?.type || "line-clear" };
-          tile.variant = "powerup";
-          reservedSpawnCells.add(spawnKey);
-          clearSet.delete(spawnKey);
-        }
-      }
-    }
-    if (run.length === 5 && powerUps.match5?.enabled !== false) {
-      const spawnCell = selectSpawnCell(run);
-      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
-      if (!reservedSpawnCells.has(spawnKey)) {
-        const tile = state.grid[spawnCell.row][spawnCell.col];
-        if (tile) {
-          tile.powerUp = { type: powerUps.match5?.type || "color-clear" };
-          tile.variant = "powerup";
-          reservedSpawnCells.add(spawnKey);
-          clearSet.delete(spawnKey);
-        }
-      }
-    }
-  });
-
-  if (!comboTriggered && powerUps.enabled !== false) {
-    powerUpCells.forEach(({ row, col, tile }) => {
-      const key = `${row},${col}`;
-      if (!clearSet.has(key)) return;
-      if (tile.powerUp?.type === "line-clear") {
-        const orientation = runOrientation.get(key) || "row";
-        if (orientation === "row") {
-          for (let c = 0; c < state.cols; c += 1) {
-            clearSet.add(`${row},${c}`);
-          }
-        } else {
-          for (let r = 0; r < state.rows; r += 1) {
-            clearSet.add(`${r},${col}`);
-          }
-        }
-      } else if (tile.powerUp?.type === "color-clear") {
-        for (let r = 0; r < state.rows; r += 1) {
-          for (let c = 0; c < state.cols; c += 1) {
-            const cell = state.grid[r][c];
-            if (cell?.typeId === tile.typeId) {
-              clearSet.add(`${r},${c}`);
-            }
-          }
-        }
-      } else if (tile.powerUp?.type === "mega") {
-        for (let r = 0; r < state.rows; r += 1) {
-          for (let c = 0; c < state.cols; c += 1) {
-            clearSet.add(`${r},${c}`);
-          }
-        }
-      }
-    });
-  }
-
-  state.score += scoreMatches(runs);
-  updateScoreDisplay();
-  await delay(matchDelay);
+async function applyClearAndRefill(clearSet, tileTypes, variant, cascadeDelay) {
+  if (!clearSet.size) return;
   state.grid = clearMatches(state.grid, clearSet);
   drawGrid();
   await delay(cascadeDelay);
@@ -1008,6 +940,179 @@ async function resolveCascade(matchSet) {
   }
   await buildSpawnAnimation(spawnedTiles, postRefillPositions, cascadeDelay);
   updateStateExport();
+}
+
+function pickTornadoStep(position) {
+  const directions = [
+    { dr: 1, dc: 0 },
+    { dr: -1, dc: 0 },
+    { dr: 0, dc: 1 },
+    { dr: 0, dc: -1 },
+  ];
+  const options = directions.filter((dir) => {
+    const nextRow = position.row + dir.dr;
+    const nextCol = position.col + dir.dc;
+    return nextRow >= 0 && nextRow < state.rows && nextCol >= 0 && nextCol < state.cols;
+  });
+  if (!options.length) return position;
+  const choice = options[Math.floor(Math.random() * options.length)];
+  return { row: position.row + choice.dr, col: position.col + choice.dc };
+}
+
+async function runVoidEffect(origin, tileTypes, variant, cascadeDelay, config) {
+  const durationMs = config.durationMs ?? 3000;
+  const tickMs = config.tickMs ?? 240;
+  const radius = config.radius ?? 1;
+  const scoreMultiplier = config.scoreMultiplier ?? 1;
+  const endTime = performance.now() + durationMs;
+  while (performance.now() < endTime) {
+    const start = performance.now();
+    const clearSet = buildAreaClearSet(origin.row, origin.col, radius);
+    if (clearSet.size) {
+      state.score += scoreClearSet(clearSet, scoreMultiplier);
+      updateScoreDisplay();
+      await applyClearAndRefill(clearSet, tileTypes, variant, cascadeDelay);
+    }
+    const elapsed = performance.now() - start;
+    const waitMs = tickMs - elapsed;
+    if (waitMs > 0) await delay(waitMs);
+  }
+}
+
+async function runTornadoEffect(origin, tileTypes, variant, cascadeDelay, config) {
+  const durationMs = config.durationMs ?? 3000;
+  const stepMs = config.stepMs ?? 220;
+  const clearRadius = config.clearRadius ?? 0;
+  const scoreMultiplier = config.scoreMultiplier ?? 1;
+  const endTime = performance.now() + durationMs;
+  let position = { ...origin };
+  while (performance.now() < endTime) {
+    const start = performance.now();
+    const clearSet = buildAreaClearSet(position.row, position.col, clearRadius);
+    if (clearSet.size) {
+      state.score += scoreClearSet(clearSet, scoreMultiplier);
+      updateScoreDisplay();
+      await applyClearAndRefill(clearSet, tileTypes, variant, cascadeDelay);
+    }
+    position = pickTornadoStep(position);
+    const elapsed = performance.now() - start;
+    const waitMs = stepMs - elapsed;
+    if (waitMs > 0) await delay(waitMs);
+  }
+}
+
+async function resolveCascade(matchSet) {
+  const animations = state.config.animations || {};
+  const matchDelay = animations.matchResolveMs ?? 120;
+  const cascadeDelay = animations.cascadeMs ?? 180;
+  const tileTypes = getActiveTileSet(state.config).types;
+  const variant = state.config.tile.variant;
+  const runs = findMatchRuns(state.grid);
+  const powerUps = state.config.powerUps || {};
+  const clearSet = new Set(matchSet);
+  const reservedSpawnCells = new Set();
+  const powerUpCells = [];
+  const powerUpActivations = [];
+  const match4Type = powerUps.match4?.type || "square";
+  const match5Type = powerUps.match5?.type || "circle";
+  const upgradeConfig = powerUps.upgrades || {};
+  const upgradeMinRun = upgradeConfig.minRun ?? 4;
+  const knownPowerUps = new Set([match4Type, match5Type, "void", "tornado"]);
+
+  matchSet.forEach((key) => {
+    const [row, col] = key.split(",").map(Number);
+    const tile = state.grid[row]?.[col];
+    if (tile?.powerUp) powerUpCells.push({ row, col, tile });
+  });
+
+  const selectSpawnCell = (run) => run.cells[Math.floor(run.cells.length / 2)];
+
+  runs.forEach((run) => {
+    const matchId = run.matchId || run.typeId;
+    const matchType = matchId?.includes(":") ? matchId.split(":")[0] : matchId;
+    const runPowerUpType = knownPowerUps.has(matchType) ? matchType : null;
+    if (run.length >= upgradeMinRun && runPowerUpType === match4Type && upgradeConfig.squareToVoid) {
+      const spawnCell = selectSpawnCell(run);
+      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
+      if (!reservedSpawnCells.has(spawnKey) && powerUps.void?.enabled !== false) {
+        const tile = state.grid[spawnCell.row][spawnCell.col];
+        if (tile) {
+          applyPowerUp(tile, "void", state.config);
+          reservedSpawnCells.add(spawnKey);
+          clearSet.delete(spawnKey);
+        }
+      }
+      return;
+    }
+    if (run.length >= upgradeMinRun && runPowerUpType === match5Type && upgradeConfig.circleToTornado) {
+      const spawnCell = selectSpawnCell(run);
+      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
+      if (!reservedSpawnCells.has(spawnKey) && powerUps.tornado?.enabled !== false) {
+        const tile = state.grid[spawnCell.row][spawnCell.col];
+        if (tile) {
+          applyPowerUp(tile, "tornado", state.config);
+          reservedSpawnCells.add(spawnKey);
+          clearSet.delete(spawnKey);
+        }
+      }
+      return;
+    }
+    if (run.length === 4 && powerUps.match4?.enabled !== false && !runPowerUpType) {
+      const spawnCell = selectSpawnCell(run);
+      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
+      if (!reservedSpawnCells.has(spawnKey)) {
+        const tile = state.grid[spawnCell.row][spawnCell.col];
+        if (tile) {
+          applyPowerUp(tile, match4Type, state.config);
+          reservedSpawnCells.add(spawnKey);
+          clearSet.delete(spawnKey);
+        }
+      }
+    }
+    if (run.length === 5 && powerUps.match5?.enabled !== false && !runPowerUpType) {
+      const spawnCell = selectSpawnCell(run);
+      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
+      if (!reservedSpawnCells.has(spawnKey)) {
+        const tile = state.grid[spawnCell.row][spawnCell.col];
+        if (tile) {
+          applyPowerUp(tile, match5Type, state.config);
+          reservedSpawnCells.add(spawnKey);
+          clearSet.delete(spawnKey);
+        }
+      }
+    }
+  });
+
+  if (powerUps.enabled !== false) {
+    powerUpCells.forEach(({ row, col, tile }) => {
+      const key = `${row},${col}`;
+      if (!clearSet.has(key)) return;
+      if (tile.powerUp?.type === "void" || tile.powerUp?.type === "tornado") {
+        powerUpActivations.push({ row, col, type: tile.powerUp.type });
+      }
+    });
+  }
+
+  state.score += scoreMatches(runs, state.grid);
+  updateScoreDisplay();
+  await delay(matchDelay);
+  await applyClearAndRefill(clearSet, tileTypes, variant, cascadeDelay);
+
+  if (powerUpActivations.length) {
+    for (const activation of powerUpActivations) {
+      if (activation.type === "void") {
+        await runVoidEffect(activation, tileTypes, variant, cascadeDelay, powerUps.void || {});
+      } else if (activation.type === "tornado") {
+        await runTornadoEffect(
+          activation,
+          tileTypes,
+          variant,
+          cascadeDelay,
+          powerUps.tornado || {}
+        );
+      }
+    }
+  }
   const nextMatches = findMatches(state.grid);
   if (nextMatches.size > 0) {
     state.cascade.index += 1;

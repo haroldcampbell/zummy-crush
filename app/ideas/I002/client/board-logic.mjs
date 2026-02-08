@@ -8,6 +8,11 @@ function normalizeOffset(offset, length) {
   return (normalized + length) % length;
 }
 
+function getMatchId(cell) {
+  if (!cell) return null;
+  return cell.matchId || cell.typeId || null;
+}
+
 export function createGrid(rows, cols, tileTypes, options = {}) {
   const grid = [];
   for (let r = 0; r < rows; r += 1) {
@@ -65,7 +70,7 @@ export function findMatches(grid) {
     let runLength = 0;
     let runStart = 0;
     for (let c = 0; c <= cols; c += 1) {
-      const currentId = c < cols ? grid[r][c]?.typeId : null;
+      const currentId = c < cols ? getMatchId(grid[r][c]) : null;
       if (currentId && currentId === runId) {
         runLength += 1;
         continue;
@@ -86,7 +91,7 @@ export function findMatches(grid) {
     let runLength = 0;
     let runStart = 0;
     for (let r = 0; r <= rows; r += 1) {
-      const currentId = r < rows ? grid[r][c]?.typeId : null;
+      const currentId = r < rows ? getMatchId(grid[r][c]) : null;
       if (currentId && currentId === runId) {
         runLength += 1;
         continue;
@@ -112,10 +117,12 @@ export function findMatchRuns(grid) {
 
   for (let r = 0; r < rows; r += 1) {
     let runId = null;
+    let runTypeId = null;
     let runLength = 0;
     let runStart = 0;
     for (let c = 0; c <= cols; c += 1) {
-      const currentId = c < cols ? grid[r][c]?.typeId : null;
+      const cell = c < cols ? grid[r][c] : null;
+      const currentId = cell ? getMatchId(cell) : null;
       if (currentId && currentId === runId) {
         runLength += 1;
         continue;
@@ -125,9 +132,10 @@ export function findMatchRuns(grid) {
         for (let k = runStart; k < runStart + runLength; k += 1) {
           cells.push({ row: r, col: k });
         }
-        runs.push({ orientation: "row", typeId: runId, cells, length: runLength });
+        runs.push({ orientation: "row", matchId: runId, typeId: runTypeId, cells, length: runLength });
       }
       runId = currentId || null;
+      runTypeId = cell?.typeId || null;
       runStart = c;
       runLength = currentId ? 1 : 0;
     }
@@ -135,10 +143,12 @@ export function findMatchRuns(grid) {
 
   for (let c = 0; c < cols; c += 1) {
     let runId = null;
+    let runTypeId = null;
     let runLength = 0;
     let runStart = 0;
     for (let r = 0; r <= rows; r += 1) {
-      const currentId = r < rows ? grid[r][c]?.typeId : null;
+      const cell = r < rows ? grid[r][c] : null;
+      const currentId = cell ? getMatchId(cell) : null;
       if (currentId && currentId === runId) {
         runLength += 1;
         continue;
@@ -148,9 +158,10 @@ export function findMatchRuns(grid) {
         for (let k = runStart; k < runStart + runLength; k += 1) {
           cells.push({ row: k, col: c });
         }
-        runs.push({ orientation: "col", typeId: runId, cells, length: runLength });
+        runs.push({ orientation: "col", matchId: runId, typeId: runTypeId, cells, length: runLength });
       }
       runId = currentId || null;
+      runTypeId = cell?.typeId || null;
       runStart = r;
       runLength = currentId ? 1 : 0;
     }

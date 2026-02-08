@@ -21,8 +21,14 @@ Power-up durations and behaviors need to be configurable, and match clarity need
 
 - Config entries for:
   - Void duration (ms)
+  - Void tick interval (ms)
+  - Void radius (tiles)
+  - Void score multiplier
   - Tornado duration (ms)
-  - Tornado path behavior settings
+  - Tornado step interval (ms)
+  - Tornado clear radius (tiles)
+  - Tornado score multiplier
+  - Color-agnostic match rules for high-tier power-ups
 - Debug flag to enable a match preview overlay
 - Overlay visualizes potential matches after a snap
 
