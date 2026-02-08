@@ -147,6 +147,8 @@ button {
 	align-items: center;
 	row-gap: 10px;
 	justify-self: center;
+	align-self: start;
+	height: max-content;
 }
 
 .score-container {
