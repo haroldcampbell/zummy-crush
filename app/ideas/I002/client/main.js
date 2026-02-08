@@ -58,6 +58,7 @@ const state = {
       intensityPx: 0,
     },
     shakeOffset: { x: 0, y: 0 },
+    proximity: new Map(),
   },
 };
 
@@ -396,11 +397,46 @@ function endDrag(event) {
   state.dragging = null;
 }
 
-function drawTile(x, y, size, tile, config) {
-  const baseFill = config.render?.tileBase || "#12110f";
+function hexToRgba(hex, alpha) {
+  if (!hex || typeof hex !== "string") return null;
+  const normalized = hex.replace("#", "");
+  if (normalized.length !== 6) return null;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getTileBackground(tile, config, gridPos) {
+  const render = config.render || {};
+  const restFill = render.tileBaseRest || "transparent";
+  const dragFill = render.tileBaseDrag || restFill;
+  const dragging = Boolean(state.dragging || state.snapping);
+  if (dragging) return dragFill;
+  const proximity = state.config.vfx?.proximity;
+  if (proximity?.enabled && gridPos) {
+    const key = `${gridPos.row},${gridPos.col}`;
+    const entry = state.vfx.proximity.get(key);
+    if (entry && entry.untilMs > state.now) {
+      if (proximity.useTileColor && tile) {
+        const tint = hexToRgba(getTileFillColor(tile, config), proximity.opacity ?? 0.3);
+        if (tint) return tint;
+      }
+      const alpha = proximity.opacity ?? 0.3;
+      return `rgba(255, 255, 255, ${alpha})`;
+    }
+  }
+  return restFill;
+}
+
+function drawTile(x, y, size, tile, config, gridPos) {
+  const baseFill = getTileBackground(tile, config, gridPos);
   if (!tile) {
-    ctx.fillStyle = baseFill;
-    ctx.fillRect(x, y, size, size);
+    if (baseFill && baseFill !== "transparent") {
+      ctx.fillStyle = baseFill;
+      ctx.fillRect(x, y, size, size);
+    }
     return;
   }
   const variantMode =
@@ -431,8 +467,10 @@ function drawTile(x, y, size, tile, config) {
   ctx.translate(centerX, centerY);
   ctx.scale(scale, scale);
   ctx.translate(-centerX, -centerY);
-  ctx.fillStyle = baseFill;
-  ctx.fillRect(x, y, size, size);
+  if (baseFill && baseFill !== "transparent") {
+    ctx.fillStyle = baseFill;
+    ctx.fillRect(x, y, size, size);
+  }
 
   if (shouldRotate) {
     ctx.translate(centerX, centerY);
@@ -608,7 +646,7 @@ function drawGrid() {
       if (tile && animatedTiles.has(tile)) continue;
       const x = originX + c * cell;
       const y = originY + r * cell;
-      if (tile) tilesToDraw.push({ tile, x, y });
+      if (tile) tilesToDraw.push({ tile, x, y, row: r, col: c });
     }
   }
 
@@ -637,7 +675,7 @@ function drawGrid() {
       const progress = state.animation.progresses[entry.index] ?? 0;
       const x = entry.from.x + (entry.to.x - entry.from.x) * progress;
       const y = entry.from.y + (entry.to.y - entry.from.y) * progress;
-      tilesToDraw.push({ tile, x, y });
+      tilesToDraw.push({ tile, x, y, row: entry.to.row, col: entry.to.col });
     });
   }
 
@@ -653,7 +691,8 @@ function drawGrid() {
       entry.y + offset.y,
       state.config.board.tileSize,
       entry.tile,
-      state.config
+      state.config,
+      { row: entry.row, col: entry.col }
     );
   });
 
@@ -863,7 +902,10 @@ function drawActiveLine(active) {
       const wrapped = ((base + offsetPx) % total + total) % total;
       const x = originX + wrapped;
       const y = originY + index * cell;
-      drawTile(x, y, state.config.board.tileSize, state.grid[index][c], state.config);
+      drawTile(x, y, state.config.board.tileSize, state.grid[index][c], state.config, {
+        row: index,
+        col: c,
+      });
     }
   } else if (axis === "col") {
     const total = state.rows * cell;
@@ -872,7 +914,10 @@ function drawActiveLine(active) {
       const wrapped = ((base + offsetPx) % total + total) % total;
       const x = originX + index * cell;
       const y = originY + wrapped;
-      drawTile(x, y, state.config.board.tileSize, state.grid[r][index], state.config);
+      drawTile(x, y, state.config.board.tileSize, state.grid[r][index], state.config, {
+        row: r,
+        col: index,
+      });
     }
   }
 }
@@ -885,6 +930,7 @@ function step(timestamp) {
   updateParticles(deltaMs);
   updateTextBursts(deltaMs);
   updateShake(deltaMs);
+  updateProximity();
   if (state.snapping) {
     const elapsed = timestamp - state.snapping.start;
     const t = clamp(elapsed / state.snapping.duration, 0, 1);
@@ -1244,6 +1290,26 @@ function updateParticles(deltaMs) {
   }
 }
 
+function markProximity(center, radius, durationMs) {
+  const proximity = state.config.vfx?.proximity;
+  if (!proximity?.enabled) return;
+  const untilMs = state.now + durationMs;
+  for (let r = center.row - radius; r <= center.row + radius; r += 1) {
+    for (let c = center.col - radius; c <= center.col + radius; c += 1) {
+      if (r < 0 || c < 0 || r >= state.rows || c >= state.cols) continue;
+      state.vfx.proximity.set(`${r},${c}`, { untilMs });
+    }
+  }
+}
+
+function updateProximity() {
+  for (const [key, entry] of state.vfx.proximity.entries()) {
+    if (entry.untilMs <= state.now) {
+      state.vfx.proximity.delete(key);
+    }
+  }
+}
+
 function drawParticles() {
   const particles = state.vfx.particles;
   if (!particles.length) return;
@@ -1440,9 +1506,13 @@ async function runVoidEffect(origin, tileTypes, variant, cascadeDelay, config) {
   const tickMs = config.tickMs ?? 240;
   const radius = config.radius ?? 1;
   const scoreMultiplier = config.scoreMultiplier ?? 1;
+  const proximity = state.config.vfx?.proximity;
+  const proximityRadius = proximity?.radius ?? radius + 1;
+  const proximityDuration = proximity?.durationMs ?? 300;
   const endTime = performance.now() + durationMs;
   while (performance.now() < endTime) {
     const start = performance.now();
+    markProximity(origin, proximityRadius, proximityDuration);
     const clearSet = buildAreaClearSet(origin.row, origin.col, radius);
     if (clearSet.size) {
       state.score += scoreClearSet(clearSet, scoreMultiplier);
@@ -1460,10 +1530,14 @@ async function runTornadoEffect(origin, tileTypes, variant, cascadeDelay, config
   const stepMs = config.stepMs ?? 220;
   const clearRadius = config.clearRadius ?? 0;
   const scoreMultiplier = config.scoreMultiplier ?? 1;
+  const proximity = state.config.vfx?.proximity;
+  const proximityRadius = proximity?.radius ?? 2;
+  const proximityDuration = proximity?.durationMs ?? 300;
   const endTime = performance.now() + durationMs;
   let position = { ...origin };
   while (performance.now() < endTime) {
     const start = performance.now();
+    markProximity(position, proximityRadius, proximityDuration);
     const clearSet = buildAreaClearSet(position.row, position.col, clearRadius);
     if (clearSet.size) {
       state.score += scoreClearSet(clearSet, scoreMultiplier);

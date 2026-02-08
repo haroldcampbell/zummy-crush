@@ -68,7 +68,8 @@
   "render": {
     "background": "#f6f4f0",
     "panel": "#efe7dc",
-    "tileBase": "#fdfbf8"
+    "tileBaseRest": "transparent",
+    "tileBaseDrag": "#fdfbf8"
   },
   "debug": {
     "forceVariant": null,
@@ -255,6 +256,13 @@
         "super": "Super!"
       },
       "scoreThreshold": 1000
+    },
+    "proximity": {
+      "enabled": true,
+      "radius": 2,
+      "durationMs": 300,
+      "opacity": 0.35,
+      "useTileColor": true
     }
   }
 }
