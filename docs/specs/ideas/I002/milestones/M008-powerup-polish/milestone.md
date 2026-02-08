@@ -29,9 +29,9 @@ Refine power-up behavior and visual identity to be readable and satisfying witho
 
 ## Specs
 
-- [ ] S001 - Power-Up Visual Identity (Shape + Color Only)
-- [ ] S002 - Power-Up Progression + Activation Rules
-- [ ] S003 - Power-Up Configuration + Debug Overlay
+- [x] S001 - Power-Up Visual Identity (Shape + Color Only)
+- [x] S002 - Power-Up Progression + Activation Rules
+- [x] S003 - Power-Up Configuration + Debug Overlay
 
 ## Dependencies
 

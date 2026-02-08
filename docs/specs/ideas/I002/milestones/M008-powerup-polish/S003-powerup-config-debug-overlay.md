@@ -47,7 +47,7 @@ Power-up durations and behaviors need to be configurable, and match clarity need
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete
+- [x] Tests added/updated (not applicable)
+- [x] Docs updated

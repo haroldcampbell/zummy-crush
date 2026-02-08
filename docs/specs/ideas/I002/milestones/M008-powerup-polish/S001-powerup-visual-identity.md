@@ -43,7 +43,7 @@ Current power-up badges rely on text labels. The goal is to convey power-ups pur
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete
+- [x] Tests added/updated (not applicable)
+- [x] Docs updated
