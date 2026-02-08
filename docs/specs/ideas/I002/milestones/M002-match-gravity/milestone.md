@@ -27,9 +27,11 @@ Add classic match-3 resolution, clears, and gravity/refill after a rotation move
 
 ## Specs
 
-- [ ] S001 - Post-Snap Match Detection
-- [ ] S002 - Clear + Gravity + Refill
-- [ ] S003 - Cascade Loop Control
+- [x] S001 - Post-Snap Match Detection
+- [x] S002 - Clear + Gravity + Refill
+- [x] S003 - Cascade Loop Control
+- [x] S004 - No Pre-Match Start
+- [x] S005 - Refill After Matches
 
 ## Dependencies
 

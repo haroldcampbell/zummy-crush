@@ -34,6 +34,11 @@ The core novelty of I002 is rotating a row or column instead of swapping tiles; 
 - Delay line selection until a small threshold is crossed to avoid accidental axis choice
 - Use a clear highlight for the active row/column
 
+## Notes
+
+- Assumption: Pointer threshold defaults to ~10px before axis selection locks.
+- Assumption: Only one pointer is tracked; additional pointers are ignored.
+
 ## Data / State
 
 - Active line (row/column index)
@@ -51,6 +56,6 @@ The core novelty of I002 is rotating a row or column instead of swapping tiles; 
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

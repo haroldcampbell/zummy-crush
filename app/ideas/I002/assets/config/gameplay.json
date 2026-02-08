@@ -1,0 +1,153 @@
+{
+  "board": {
+    "rows": 8,
+    "cols": 8,
+    "tileSize": 34,
+    "gap": 4,
+    "padding": 8,
+    "maxWidth": 320
+  },
+  "input": {
+    "dragThresholdPx": 10,
+    "snapMs": 160
+  },
+  "tile": {
+    "iconScale": 0.78,
+    "variant": "base"
+  },
+  "tileSet": {
+    "active": "runes",
+    "variants": {
+      "runes": {
+        "name": "Runes",
+        "types": [
+          {
+            "id": "diamond",
+            "shape": "diamond",
+            "fill": "#f2b446",
+            "stroke": "#7a4b12"
+          },
+          {
+            "id": "circle",
+            "shape": "circle",
+            "fill": "#4fb6c2",
+            "stroke": "#1f4c52"
+          },
+          {
+            "id": "triangle",
+            "shape": "triangle",
+            "fill": "#e66a5c",
+            "stroke": "#7a2f27"
+          },
+          {
+            "id": "hexagon",
+            "shape": "hex",
+            "fill": "#6fbf73",
+            "stroke": "#2f5a34"
+          }
+        ]
+      }
+    }
+  },
+  "variantStyle": {
+    "stroke": "#f6d36a",
+    "glow": "#f9f1c1",
+    "badge": {
+      "enabled": true,
+      "text": "P",
+      "fill": "#3a2a14",
+      "textColor": "#f9f1c1"
+    }
+  },
+  "render": {
+    "background": "#f6f4f0",
+    "panel": "#efe7dc",
+    "tileBase": "#fdfbf8"
+  },
+  "debug": {
+    "forceVariant": null,
+    "enableStateExport": true
+  },
+  "features": {
+    "matchesEnabled": true
+  },
+  "animations": {
+    "cascadeMs": 80,
+    "matchResolveMs": 40,
+    "cascadeStaggerMs": {
+      "min": 5,
+      "max": 10
+    }
+  },
+  "physics": {
+    "enabled": true,
+    "gravityPxPerMs": 0.3,
+    "collisionDecel": 0.9,
+    "bounceElasticity": 2.5,
+    "repulsion": {
+      "radius": 0,
+      "strength": 1,
+      "decayMs": 400,
+      "tapBoost": 0.35
+    },
+    "tap": {
+      "scaleDown": 0.08,
+      "scaleDurationMs": 140
+    },
+    "cascadeSpacingGapMultiplier": 2
+  },
+  "scoring": {
+    "tileValues": {
+      "diamond": 100,
+      "circle": 200,
+      "triangle": 300,
+      "hexagon": 400
+    },
+    "bonusByLength": {
+      "4": 250,
+      "5": 500,
+      "6": 10000
+    }
+  },
+  "powerUps": {
+    "enabled": true,
+    "match4": {
+      "enabled": true,
+      "type": "line-clear"
+    },
+    "match5": {
+      "enabled": true,
+      "type": "color-clear"
+    },
+    "combo": {
+      "enabled": true,
+      "minCount": 2
+    },
+    "mega": {
+      "enabled": true,
+      "clearMode": "board"
+    },
+    "visuals": {
+      "lineClearBadge": "L",
+      "colorClearBadge": "C",
+      "megaBadge": "M",
+      "styles": {
+        "line-clear": {
+          "shape": "square",
+          "fill": "#f3c77a",
+          "stroke": "#7a4b12"
+        },
+        "color-clear": {
+          "shape": "star",
+          "fill": "#f0a3b5",
+          "stroke": "#7a2f3b"
+        },
+        "mega": {
+          "shape": "diamond",
+          "fill": "#ffd27d",
+          "stroke": "#6b4a10"
+        }
+      }
+    }
+  }
+}

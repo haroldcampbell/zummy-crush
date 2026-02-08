@@ -21,7 +21,7 @@ We need to tune readability quickly during playtests without code changes.
 
 - Tile size and gap are driven by config
 - Icon scale or inset is driven by config
-- At least two tile-set variants can be toggled via config
+- Tile set is fixed to runes for clarity
 
 ## Non-Functional Requirements
 
@@ -30,6 +30,11 @@ We need to tune readability quickly during playtests without code changes.
 ## UX Notes
 
 - Capture preferred settings after a quick playtest
+
+## Notes
+
+- Assumption: Toggles are handled via config file edits (no settings UI yet).
+- Assumption: Tile set is fixed to runes until further notice.
 
 ## Data / State
 
@@ -46,6 +51,6 @@ We need to tune readability quickly during playtests without code changes.
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

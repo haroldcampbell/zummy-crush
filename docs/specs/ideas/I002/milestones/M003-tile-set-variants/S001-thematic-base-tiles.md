@@ -10,7 +10,7 @@ I002 needs a thematic tile identity distinct from letters, while keeping readabi
 
 ## Goals
 
-- Replace letters with four thematic tile icons/shapes
+- Replace letters with four thematic rune icons/shapes
 - Preserve quick recognition and match planning
 
 ## Non-Goals
@@ -32,6 +32,11 @@ I002 needs a thematic tile identity distinct from letters, while keeping readabi
 - Choose icons with distinct silhouettes
 - Avoid relying solely on color for differentiation
 
+## Notes
+
+- Assumption: Initial tile set uses runes only (gems removed to reduce confusion).
+- Assumption: Exactly four base types remain fixed for early playtests.
+
 ## Data / State
 
 - Tile type enum (4 base types)
@@ -47,6 +52,6 @@ I002 needs a thematic tile identity distinct from letters, while keeping readabi
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

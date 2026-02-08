@@ -31,6 +31,11 @@ Matches must resolve only after a row/column rotation completes and snaps into p
 
 - Consider a short settle delay before the first match resolve for clarity
 
+## Notes
+
+- Assumption: Matches resolve only after snap; no mid-drag previews or clears.
+- Assumption: Only straight-line runs are detected (no L/T shapes).
+
 ## Data / State
 
 - Board grid state post-snap
@@ -46,6 +51,6 @@ Matches must resolve only after a row/column rotation completes and snaps into p
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

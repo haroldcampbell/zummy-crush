@@ -14,3 +14,16 @@ Decision
 
 Expected Effect
 - Clearer player feedback and reduced confusion during input.
+
+---
+
+## XDR-002: No Drag Friction Spacing
+
+Context
+- Drag friction spacing introduced visible artifacts and reduced readability.
+
+Decision
+- Do not implement drag friction spacing for I002.
+
+Expected Effect
+- Preserve clean, stable drag visuals and avoid distracting gaps or jitter.

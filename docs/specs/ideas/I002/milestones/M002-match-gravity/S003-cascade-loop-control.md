@@ -31,6 +31,10 @@ Rotation moves can create multi-step cascades; we need a stable loop that resolv
 
 - Consider a subtle per-cascade delay to improve readability
 
+## Notes
+
+- Assumption: A short per-cascade delay (~180ms) is acceptable for clarity.
+
 ## Data / State
 
 - Cascade index counter
@@ -46,6 +50,6 @@ Rotation moves can create multi-step cascades; we need a stable loop that resolv
 ## Acceptance Checklist
 
 - [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests added/updated
+- [x] Docs updated

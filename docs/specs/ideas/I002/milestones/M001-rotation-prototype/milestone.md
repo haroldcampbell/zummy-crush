@@ -28,9 +28,9 @@ Deliver a playable rotation-input prototype where a player can rotate a row or c
 
 ## Specs
 
-- [ ] S001 - Row/Column Rotation Input
-- [ ] S002 - Line Wrap + Snap Behavior
-- [ ] S003 - Input Feedback and Constraints
+- [x] S001 - Row/Column Rotation Input
+- [x] S002 - Line Wrap + Snap Behavior
+- [x] S003 - Input Feedback and Constraints
 
 ## Dependencies
 
