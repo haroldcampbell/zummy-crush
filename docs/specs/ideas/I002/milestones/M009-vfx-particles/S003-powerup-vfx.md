@@ -31,8 +31,10 @@ Power-ups need richer visual feedback when created and activated.
   - explosionLifeMs
   - explosionSizePx
   - explosionSpeedPxPerMs
-  - trailLengthPx
   - trailLifeMs
+  - trailSizePx
+  - trailSpeedPxPerMs
+  - fireColors
 
 ## Non-Functional Requirements
 
@@ -48,7 +50,7 @@ Power-ups need richer visual feedback when created and activated.
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete
+- [x] Tests added/updated (not applicable)
+- [x] Docs updated

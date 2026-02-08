@@ -34,10 +34,10 @@ Add satisfying VFX and particle feedback to matches and power-ups.
 
 ## Specs
 
-- [ ] S001 - VFX Baseline and Performance Budget (TBD)
-- [ ] S002 - Match Clear VFX (TBD)
-- [ ] S003 - Power-Up VFX (TBD)
-- [ ] S004 - Screen Shake + Text Bursts (TBD)
+- [x] S001 - VFX Baseline and Performance Budget (TBD)
+- [x] S002 - Match Clear VFX (TBD)
+- [x] S003 - Power-Up VFX (TBD)
+- [x] S004 - Screen Shake + Text Bursts (TBD)
 
 ## Dependencies
 
