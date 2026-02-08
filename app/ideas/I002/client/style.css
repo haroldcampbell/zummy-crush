@@ -3,6 +3,11 @@
 	font-family: "Georgia", "Times New Roman", serif;
 	background: #f6f4f0;
 	color: #222;
+	--safe-top: env(safe-area-inset-top, 0px);
+	--safe-right: env(safe-area-inset-right, 0px);
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+	--safe-left: env(safe-area-inset-left, 0px);
+	--shell-padding: 20px;
 }
 
 * {
@@ -11,18 +16,25 @@
 
 body {
 	margin: 0;
-	min-height: 100vh;
+	min-height: 100svh;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	background: #f6f4f0;
+	padding: calc(var(--shell-padding) + var(--safe-top))
+		calc(var(--shell-padding) + var(--safe-right))
+		calc(var(--shell-padding) + var(--safe-bottom))
+		calc(var(--shell-padding) + var(--safe-left));
 }
 
 .shell {
 	width: min(90vw, 420px);
 	display: grid;
 	gap: 16px;
-	padding: 20px 18px;
+	padding: 0;
+	min-height: calc(100svh - (var(--shell-padding) * 2) - var(--safe-top) - var(--safe-bottom));
+	grid-template-rows: auto 1fr auto;
+	align-content: center;
 }
 
 .hud {
@@ -87,6 +99,7 @@ button {
 	/* justify-content: center; */
 	align-items: center;
 	row-gap: 10px;
+	justify-self: center;
 }
 
 .score-container {

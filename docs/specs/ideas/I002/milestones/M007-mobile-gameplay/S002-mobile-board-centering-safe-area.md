@@ -23,6 +23,7 @@ On mobile, the game board is not centered and can feel visually off-balance.
 - Board is centered horizontally on mobile
 - Board is visually centered vertically with HUD above the board
 - Use safe-area padding to avoid notch overlap
+- Safe-area and shell padding values are configurable (CSS variables)
 
 ## Non-Functional Requirements
 
