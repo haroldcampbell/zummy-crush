@@ -291,6 +291,11 @@ function drawTile(x, y, size, tile, config) {
   const centerY = y + size / 2;
   const tapConfig = config.physics?.tap || TAP_SCALE_FALLBACK;
   const scale = computeTapScale(state.now, tile.tapImpactStart, tapConfig.scaleDurationMs, tapConfig.scaleDown);
+  const rotationConfig = config.powerUps?.visuals?.rotation;
+  const shouldRotate = tile.powerUp && rotationConfig?.enabled;
+  const rotationRadians = shouldRotate
+    ? (state.now * (rotationConfig.radiansPerMs || 0)) % (Math.PI * 2)
+    : 0;
 
   ctx.save();
   ctx.translate(centerX, centerY);
@@ -299,19 +304,40 @@ function drawTile(x, y, size, tile, config) {
   ctx.fillStyle = baseFill;
   ctx.fillRect(x, y, size, size);
 
+  if (shouldRotate) {
+    ctx.translate(centerX, centerY);
+    ctx.rotate(rotationRadians);
+    ctx.translate(-centerX, -centerY);
+  }
   drawShape(shape, centerX, centerY, iconSize / 2, fill, stroke);
 
+  if (tile.powerUp) {
+    const dotConfig = config.powerUps?.visuals?.coreDot;
+    const dotTypes = dotConfig?.types || [];
+    if (dotConfig?.enabled && dotTypes.includes(tile.powerUp.type)) {
+      const colors = dotConfig.colors || [];
+      const cycleMs = Math.max(dotConfig.cycleMs || 0, 1);
+      const sizeRatio = dotConfig.sizeRatio || 0.2;
+      const dotSize = iconSize * sizeRatio;
+      const colorIndex = colors.length
+        ? Math.floor((state.now / cycleMs) % colors.length)
+        : 0;
+      const dotColor = colors[colorIndex] || "#fff";
+      ctx.fillStyle = dotColor;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, dotSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   if (variantMode === "powerup") {
-    const badgeText = getPowerUpBadgeText(tile, config);
-    const style = badgeText
-      ? {
-          ...config.variantStyle,
-          badge: {
-            ...config.variantStyle.badge,
-            text: badgeText,
-          },
-        }
-      : config.variantStyle;
+    const style = {
+      ...config.variantStyle,
+      badge: {
+        ...config.variantStyle.badge,
+        enabled: false,
+      },
+    };
     drawVariantFrame(x, y, size, style);
   }
   ctx.restore();
@@ -779,15 +805,6 @@ function scoreMatches(runs) {
     points += bonus;
   });
   return points;
-}
-
-function getPowerUpBadgeText(tile, config) {
-  const visuals = config.powerUps?.visuals || {};
-  if (!tile.powerUp) return null;
-  if (tile.powerUp.type === "line-clear") return visuals.lineClearBadge || "L";
-  if (tile.powerUp.type === "color-clear") return visuals.colorClearBadge || "C";
-  if (tile.powerUp.type === "mega") return visuals.megaBadge || "M";
-  return null;
 }
 
 function computeTapScale(now, tapStart, durationMs, scaleDown) {

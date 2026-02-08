@@ -134,9 +134,17 @@
       "clearMode": "board"
     },
     "visuals": {
-      "lineClearBadge": "L",
-      "colorClearBadge": "C",
-      "megaBadge": "M",
+      "rotation": {
+        "enabled": true,
+        "radiansPerMs": 0.0015
+      },
+      "coreDot": {
+        "enabled": true,
+        "types": ["void", "tornado"],
+        "sizeRatio": 0.18,
+        "cycleMs": 650,
+        "colors": ["#f2b446", "#4fb6c2", "#e66a5c", "#6fbf73"]
+      },
       "styles": {
         "line-clear": {
           "shape": "square",
@@ -144,7 +152,7 @@
           "stroke": "#7a4b12"
         },
         "color-clear": {
-          "shape": "star",
+          "shape": "circle",
           "fill": "#f0a3b5",
           "stroke": "#7a2f3b"
         },
@@ -152,6 +160,16 @@
           "shape": "diamond",
           "fill": "#ffd27d",
           "stroke": "#6b4a10"
+        },
+        "void": {
+          "shape": "square",
+          "fill": "#f6f4f0",
+          "stroke": "#2b2b2b"
+        },
+        "tornado": {
+          "shape": "circle",
+          "fill": "#1b1b1b",
+          "stroke": "#0b0b0b"
         }
       }
     }

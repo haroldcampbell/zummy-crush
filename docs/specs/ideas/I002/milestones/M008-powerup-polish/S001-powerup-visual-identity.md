@@ -13,6 +13,7 @@ Current power-up badges rely on text labels. The goal is to convey power-ups pur
 - Remove text badges for power-ups
 - Use shape and color to indicate type
 - Add a small cycling color dot for high-tier power-ups
+- Add subtle rotation to signal special tiles
 
 ## Non-Goals
 
@@ -25,6 +26,7 @@ Current power-up badges rely on text labels. The goal is to convey power-ups pur
 - Match-4 and Match-5 power-ups use distinct shapes
 - White Square and Black Omni-Circle include a small center dot that cycles through colors
 - Power-up matching is color-agnostic for White Square and Black Omni-Circle
+- Rotation speed and dot cycling are configurable
 
 ## Non-Functional Requirements
 
