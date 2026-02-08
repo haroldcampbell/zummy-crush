@@ -38,7 +38,7 @@ The bottom "Ready" status is noisy and the Info button placement is intrusive on
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete
+- [x] Tests added/updated (not applicable)
+- [x] Docs updated

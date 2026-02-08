@@ -29,10 +29,10 @@ Improve onboarding clarity and UI polish based on playtest feedback without chan
 
 ## Specs
 
-- [ ] S001 - Scoring Guide Tabs + Visual Aids
-- [ ] S002 - HUD Cleanup + Info Menu
-- [ ] S003 - Board Panel Sizing Fix
-- [ ] S004 - Tile Background + VFX Proximity Cues
+- [x] S001 - Scoring Guide Tabs + Visual Aids
+- [x] S002 - HUD Cleanup + Info Menu
+- [x] S003 - Board Panel Sizing Fix
+- [x] S004 - Tile Background + VFX Proximity Cues
 
 ## Dependencies
 

@@ -41,7 +41,7 @@ Tiles have a constant beige background that reduces contrast. The player wants b
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete
+- [x] Tests added/updated (not applicable)
+- [x] Docs updated

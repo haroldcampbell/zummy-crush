@@ -44,7 +44,7 @@ The scoring guide is long, lacks visuals, and does not explain power-ups.
 
 ## Acceptance Checklist
 
-- [ ] Spec reviewed
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Docs updated
+- [x] Spec reviewed
+- [x] Implementation complete
+- [x] Tests added/updated (not applicable)
+- [x] Docs updated
