@@ -20,6 +20,7 @@ const helpButton = document.getElementById("help-button");
 const helpModal = document.getElementById("help-modal");
 const helpClose = document.getElementById("help-close");
 const helpContent = document.getElementById("help-content");
+let helpTabsInitialized = false;
 
 let swRegistration = null;
 
@@ -80,26 +81,113 @@ function buildHelpContent() {
   const scoring = state.config.scoring || {};
   const tileValues = scoring.tileValues || {};
   const bonusByLength = scoring.bonusByLength || {};
-  const rows = Object.entries(tileValues)
-    .map(([shape, value]) => `<li><strong>${shape}</strong>: ${value} points</li>`)
+  const tileSet = getActiveTileSet(state.config);
+  const powerUps = state.config.powerUps || {};
+  const visuals = powerUps.visuals || {};
+  const match4Type = powerUps.match4?.type || "square";
+  const match5Type = powerUps.match5?.type || "circle";
+  const voidConfig = powerUps.void || {};
+  const tornadoConfig = powerUps.tornado || {};
+  const formatDuration = (ms) => `${Math.round((ms || 0) / 100) / 10}s`;
+  const shapeSvg = (shape, fill, stroke) => {
+    const size = 18;
+    const half = size / 2;
+    const strokeWidth = 2;
+    const svgStart = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">`;
+    const svgEnd = "</svg>";
+    const style = `fill=\"${fill}\" stroke=\"${stroke}\" stroke-width=\"${strokeWidth}\"`;
+    switch (shape) {
+      case "diamond":
+        return `${svgStart}<polygon ${style} points=\"${half},2 ${size - 2},${half} ${half},${size - 2} 2,${half}\" />${svgEnd}`;
+      case "triangle":
+        return `${svgStart}<polygon ${style} points=\"${half},2 ${size - 2},${size - 2} 2,${size - 2}\" />${svgEnd}`;
+      case "hex":
+        return `${svgStart}<polygon ${style} points=\"${half},2 ${size - 2},${half - 3} ${size - 2},${half + 3} ${half},${size - 2} 2,${half + 3} 2,${half - 3}\" />${svgEnd}`;
+      case "square":
+        return `${svgStart}<rect ${style} x=\"2\" y=\"2\" width=\"${size - 4}\" height=\"${size - 4}\" />${svgEnd}`;
+      case "circle":
+        return `${svgStart}<circle ${style} cx=\"${half}\" cy=\"${half}\" r=\"${half - 2}\" />${svgEnd}`;
+      case "star":
+        return `${svgStart}<polygon ${style} points=\"${half},2 ${half + 3},${half - 2} ${size - 2},${half - 2} ${half + 4},${half + 2} ${half + 6},${size - 2} ${half},${half + 4} ${half - 6},${size - 2} ${half - 4},${half + 2} 2,${half - 2} ${half - 3},${half - 2}\" />${svgEnd}`;
+      default:
+        return `${svgStart}<circle ${style} cx=\"${half}\" cy=\"${half}\" r=\"${half - 2}\" />${svgEnd}`;
+    }
+  };
+  const tileRow = Object.entries(tileValues)
+    .map(([typeId, value]) => {
+      const type = tileSet.types.find((entry) => entry.id === typeId) || tileSet.types[0];
+      const icon = shapeSvg(type.shape, type.fill, type.stroke);
+      return `<li class="help-row"><span class="help-icon">${icon}</span><span><strong>${type.id}</strong>: ${value} points</span></li>`;
+    })
     .join("");
   const bonuses = Object.entries(bonusByLength)
     .sort((a, b) => Number(a[0]) - Number(b[0]))
     .map(([length, bonus]) => `<li>Match ${length}: +${bonus} bonus</li>`)
     .join("");
+  const powerStyle = (type) => visuals.styles?.[type] || {};
+  const powerIcon = (type) => {
+    const style = powerStyle(type);
+    return shapeSvg(style.shape || "circle", style.fill || "#ddd", style.stroke || "#222");
+  };
   return `
-    <div><strong>Score Basics</strong></div>
-    <div>Every tile in a match adds its base value.</div>
-    <ul>${rows || "<li>No tile values configured</li>"}</ul>
-    <div><strong>Match Bonuses</strong></div>
-    <ul>${bonuses || "<li>No bonuses configured</li>"}</ul>
-    <div class="note">Longer matches stack base points plus the listed bonus.</div>
+    <div class="help-tabs" role="tablist" aria-label="Scoring guide tabs">
+      <button class="help-tab is-active" type="button" role="tab" aria-selected="true" data-tab="scoring">Scoring</button>
+      <button class="help-tab" type="button" role="tab" aria-selected="false" data-tab="powerups">Power-Ups</button>
+    </div>
+    <div class="help-panel" data-panel="scoring">
+      <div><strong>Score Basics</strong></div>
+      <div>Every tile in a match adds its base value.</div>
+      <ul class="help-list">${tileRow || "<li>No tile values configured</li>"}</ul>
+      <div><strong>Match Bonuses</strong></div>
+      <ul class="help-list">${bonuses || "<li>No bonuses configured</li>"}</ul>
+      <div class="note">Longer matches stack base points plus the listed bonus.</div>
+    </div>
+    <div class="help-panel" data-panel="powerups" hidden>
+      <div><strong>Power-Ups</strong></div>
+      <ul class="help-list">
+        <li class="help-row"><span class="help-icon">${powerIcon(match4Type)}</span><span><strong>${match4Type}</strong>: created by a Match 4 of the same color.</span></li>
+        <li class="help-row"><span class="help-icon">${powerIcon(match5Type)}</span><span><strong>${match5Type}</strong>: created by a Match 5 of the same color.</span></li>
+        <li class="help-row"><span class="help-icon">${powerIcon("void")}</span><span><strong>Void</strong>: match 4 ${match4Type}s to create. Pulls tiles in a 3x3 for ${formatDuration(voidConfig.durationMs || 3000)}.</span></li>
+        <li class="help-row"><span class="help-icon">${powerIcon("tornado")}</span><span><strong>Tornado</strong>: match 4 ${match5Type}s to create. Clears a random path for ${formatDuration(tornadoConfig.durationMs || 3000)}.</span></li>
+      </ul>
+      <div class="note">Void and Tornado are color-agnostic.</div>
+    </div>
   `;
+}
+
+function setHelpTab(tabId) {
+  if (!helpContent) return;
+  const tabs = helpContent.querySelectorAll(".help-tab");
+  const panels = helpContent.querySelectorAll(".help-panel");
+  tabs.forEach((tab) => {
+    const isActive = tab.dataset.tab === tabId;
+    tab.classList.toggle("is-active", isActive);
+    tab.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  panels.forEach((panel) => {
+    const isActive = panel.dataset.panel === tabId;
+    panel.hidden = !isActive;
+  });
+}
+
+function setupHelpTabs() {
+  if (helpTabsInitialized || !helpContent) return;
+  helpContent.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.classList.contains("help-tab")) {
+      const tabId = target.dataset.tab;
+      if (tabId) setHelpTab(tabId);
+    }
+  });
+  helpTabsInitialized = true;
 }
 
 function openHelp() {
   if (!helpModal) return;
   if (helpContent) helpContent.innerHTML = buildHelpContent();
+  setupHelpTabs();
+  setHelpTab("scoring");
   helpModal.hidden = false;
 }
 

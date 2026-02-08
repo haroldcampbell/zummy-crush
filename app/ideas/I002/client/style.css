@@ -196,3 +196,47 @@ canvas {
   color: #5a4c43;
   font-size: 12px;
 }
+
+.help-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.help-tab {
+  border: 2px solid #2b2b2b;
+  background: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.help-tab.is-active {
+  background: #2b2b2b;
+  color: #fff;
+}
+
+.help-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.help-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.help-icon {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+}
+
+.help-icon svg {
+  display: block;
+}
