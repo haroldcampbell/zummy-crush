@@ -28,9 +28,9 @@ Improve mobile playability and presentation for I002 without changing core mecha
 
 ## Specs
 
-- [ ] S001 - Asset Cache Busting (Query Versioning)
-- [ ] S002 - Mobile Board Centering + Safe-Area Padding
-- [ ] S003 - Mobile Input Affordances
+- [x] S001 - Asset Cache Busting (Query Versioning)
+- [x] S002 - Mobile Board Centering + Safe-Area Padding
+- [x] S003 - Mobile Input Affordances
 
 ## Dependencies
 
