@@ -9,7 +9,13 @@
   },
   "input": {
     "dragThresholdPx": 10,
-    "snapMs": 160
+    "snapMs": 160,
+    "affordance": {
+      "enabled": true,
+      "color": "#f6d36a",
+      "opacity": 0.08,
+      "showBothAxis": true
+    }
   },
   "tile": {
     "iconScale": 0.78,
@@ -62,11 +68,14 @@
   "render": {
     "background": "#f6f4f0",
     "panel": "#efe7dc",
-    "tileBase": "#fdfbf8"
+    "tileBaseRest": "transparent",
+    "tileBaseDrag": "#fdfbf8"
   },
   "debug": {
     "forceVariant": null,
-    "enableStateExport": true
+    "enableStateExport": true,
+    "matchPreview": false,
+    "vfxStats": false
   },
   "features": {
     "matchesEnabled": true
@@ -113,32 +122,62 @@
     "enabled": true,
     "match4": {
       "enabled": true,
-      "type": "line-clear"
+      "type": "square"
     },
     "match5": {
       "enabled": true,
-      "type": "color-clear"
+      "type": "circle"
     },
     "combo": {
-      "enabled": true,
+      "enabled": false,
       "minCount": 2
     },
     "mega": {
-      "enabled": true,
+      "enabled": false,
       "clearMode": "board"
     },
+    "matchRules": {
+      "colorAgnosticTypes": ["void", "tornado"]
+    },
+    "upgrades": {
+      "squareToVoid": true,
+      "circleToTornado": true,
+      "minRun": 4
+    },
+    "void": {
+      "enabled": true,
+      "durationMs": 3000,
+      "tickMs": 240,
+      "radius": 1,
+      "scoreMultiplier": 1.5
+    },
+    "tornado": {
+      "enabled": true,
+      "durationMs": 3000,
+      "stepMs": 220,
+      "clearRadius": 0,
+      "scoreMultiplier": 1.5
+    },
     "visuals": {
-      "lineClearBadge": "L",
-      "colorClearBadge": "C",
-      "megaBadge": "M",
+      "rotation": {
+        "enabled": true,
+        "radiansPerMs": 0.0015
+      },
+      "coreDot": {
+        "enabled": true,
+        "types": ["void", "tornado"],
+        "sizeRatio": 0.18,
+        "cycleMs": 650,
+        "colors": ["#f2b446", "#4fb6c2", "#e66a5c", "#6fbf73"]
+      },
       "styles": {
-        "line-clear": {
+        "square": {
           "shape": "square",
           "fill": "#f3c77a",
           "stroke": "#7a4b12"
         },
-        "color-clear": {
-          "shape": "star",
+        "circle": {
+          "shape": "circle",
           "fill": "#f0a3b5",
           "stroke": "#7a2f3b"
         },
@@ -146,8 +185,84 @@
           "shape": "diamond",
           "fill": "#ffd27d",
           "stroke": "#6b4a10"
+        },
+        "void": {
+          "shape": "square",
+          "fill": "#f6f4f0",
+          "stroke": "#2b2b2b"
+        },
+        "tornado": {
+          "shape": "circle",
+          "fill": "#1b1b1b",
+          "stroke": "#0b0b0b"
         }
       }
+    }
+  },
+  "vfx": {
+    "enabled": true,
+    "maxParticles": 500,
+    "gravityPxPerMs": 0.0006,
+    "alphaFalloff": 0.0025,
+    "default": {
+      "count": 14,
+      "lifeMs": 650,
+      "sizePx": 3,
+      "speedPxPerMs": 0.16,
+      "spreadRadians": 2.6,
+      "colorPalette": ["#f2b446", "#4fb6c2", "#e66a5c", "#6fbf73"]
+    },
+    "matchClear": {
+      "enabled": true,
+      "burstCount": 18,
+      "burstLifeMs": 520,
+      "burstSizePx": 3,
+      "burstSpeedPxPerMs": 0.18,
+      "burstColorMode": "tile",
+      "directional": {
+        "enabled": true,
+        "spreadRadians": 0.9,
+        "speedPxPerMs": 0.22
+      }
+    },
+    "powerUp": {
+      "createBurstCount": 14,
+      "createBurstLifeMs": 520,
+      "activateBurstCount": 32,
+      "activateBurstLifeMs": 760,
+      "explosionCount": 48,
+      "explosionLifeMs": 920,
+      "explosionSizePx": 4,
+      "explosionSpeedPxPerMs": 0.24,
+      "trailLifeMs": 320,
+      "trailSizePx": 3,
+      "trailSpeedPxPerMs": 0.08,
+      "fireColors": ["#ffb347", "#ff7b54", "#ff3d5a", "#ffd27d"]
+    },
+    "screenShake": {
+      "enabled": true,
+      "durationMs": 260,
+      "intensityPx": 4
+    },
+    "textBurst": {
+      "enabled": true,
+      "lifeMs": 900,
+      "sizePx": 16,
+      "velocityPxPerMs": 0.05,
+      "messages": {
+        "match4": "Match 4",
+        "match5": "Match 5",
+        "bigScore": "1000 Points",
+        "super": "Super!"
+      },
+      "scoreThreshold": 1000
+    },
+    "proximity": {
+      "enabled": true,
+      "radius": 2,
+      "durationMs": 300,
+      "opacity": 0.35,
+      "useTileColor": true
     }
   }
 }

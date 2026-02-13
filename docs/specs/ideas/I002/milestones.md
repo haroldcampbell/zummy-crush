@@ -8,3 +8,7 @@ Note: This list mirrors `docs/ideas/I002/roadmap.md`. Update the roadmap first.
 - [x] M004 - Animation Polish (Physics-Based)
 - [x] M005 - Scoring + HUD
 - [x] M006 - Match-4/5 Power-Ups
+- [x] M007 - Mobile Gameplay Improvements
+- [x] M008 - Power-Up Behavior + Look/Feel Polish
+- [x] M009 - Particles + VFX (Draft)
+- [x] M010 - Feedback UX Improvements

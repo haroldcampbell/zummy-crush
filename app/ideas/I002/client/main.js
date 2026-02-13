@@ -20,6 +20,32 @@ const helpButton = document.getElementById("help-button");
 const helpModal = document.getElementById("help-modal");
 const helpClose = document.getElementById("help-close");
 const helpContent = document.getElementById("help-content");
+const menuButton = document.getElementById("menu-button");
+const menuPanel = document.getElementById("menu-panel");
+const menuInfo = document.getElementById("menu-info");
+let helpTabsInitialized = false;
+
+function sizeHelpContent() {
+  if (!helpContent) return;
+  const panels = Array.from(helpContent.querySelectorAll(".help-panel"));
+  if (!panels.length) return;
+  const previousHidden = panels.map((panel) => panel.hidden);
+  panels.forEach((panel) => {
+    panel.hidden = false;
+  });
+  let maxHeight = 0;
+  panels.forEach((panel) => {
+    maxHeight = Math.max(maxHeight, panel.offsetHeight);
+  });
+  previousHidden.forEach((hidden, index) => {
+    panels[index].hidden = hidden;
+  });
+  const cap = Math.floor(window.innerHeight * 0.7);
+  const target = Math.min(maxHeight, cap);
+  helpContent.style.minHeight = `${target}px`;
+  helpContent.style.maxHeight = `${cap}px`;
+  helpContent.style.overflowY = "auto";
+}
 
 let swRegistration = null;
 
@@ -42,6 +68,20 @@ const state = {
   },
   now: 0,
   score: 0,
+  preselect: null,
+  lastFrameTime: 0,
+  vfx: {
+    particles: [],
+    textBursts: [],
+    dropped: 0,
+    shake: {
+      timeLeftMs: 0,
+      durationMs: 0,
+      intensityPx: 0,
+    },
+    shakeOffset: { x: 0, y: 0 },
+    proximity: new Map(),
+  },
 };
 
 const pointerState = {
@@ -56,7 +96,13 @@ const pointerState = {
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 function setStatus(text) {
-  if (statusEl) statusEl.textContent = text;
+  if (!statusEl) return;
+  const normalized = text === "Ready" ? "" : text;
+  statusEl.textContent = normalized;
+  const container = statusEl.parentElement;
+  if (container) {
+    container.hidden = !normalized;
+  }
 }
 
 function updateScoreDisplay() {
@@ -67,32 +113,144 @@ function buildHelpContent() {
   const scoring = state.config.scoring || {};
   const tileValues = scoring.tileValues || {};
   const bonusByLength = scoring.bonusByLength || {};
-  const rows = Object.entries(tileValues)
-    .map(([shape, value]) => `<li><strong>${shape}</strong>: ${value} points</li>`)
+  const tileSet = getActiveTileSet(state.config);
+  const powerUps = state.config.powerUps || {};
+  const visuals = powerUps.visuals || {};
+  const match4Type = powerUps.match4?.type || "square";
+  const match5Type = powerUps.match5?.type || "circle";
+  const voidConfig = powerUps.void || {};
+  const tornadoConfig = powerUps.tornado || {};
+  const formatDuration = (ms) => `${Math.round((ms || 0) / 100) / 10}s`;
+  const shapeSvg = (shape, fill, stroke) => {
+    const size = 18;
+    const half = size / 2;
+    const strokeWidth = 2;
+    const svgStart = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">`;
+    const svgEnd = "</svg>";
+    const style = `fill=\"${fill}\" stroke=\"${stroke}\" stroke-width=\"${strokeWidth}\"`;
+    switch (shape) {
+      case "diamond":
+        return `${svgStart}<polygon ${style} points=\"${half},2 ${size - 2},${half} ${half},${size - 2} 2,${half}\" />${svgEnd}`;
+      case "triangle":
+        return `${svgStart}<polygon ${style} points=\"${half},2 ${size - 2},${size - 2} 2,${size - 2}\" />${svgEnd}`;
+      case "hex":
+        return `${svgStart}<polygon ${style} points=\"${half},2 ${size - 2},${half - 3} ${size - 2},${half + 3} ${half},${size - 2} 2,${half + 3} 2,${half - 3}\" />${svgEnd}`;
+      case "square":
+        return `${svgStart}<rect ${style} x=\"2\" y=\"2\" width=\"${size - 4}\" height=\"${size - 4}\" />${svgEnd}`;
+      case "circle":
+        return `${svgStart}<circle ${style} cx=\"${half}\" cy=\"${half}\" r=\"${half - 2}\" />${svgEnd}`;
+      case "star":
+        return `${svgStart}<polygon ${style} points=\"${half},2 ${half + 3},${half - 2} ${size - 2},${half - 2} ${half + 4},${half + 2} ${half + 6},${size - 2} ${half},${half + 4} ${half - 6},${size - 2} ${half - 4},${half + 2} 2,${half - 2} ${half - 3},${half - 2}\" />${svgEnd}`;
+      default:
+        return `${svgStart}<circle ${style} cx=\"${half}\" cy=\"${half}\" r=\"${half - 2}\" />${svgEnd}`;
+    }
+  };
+  const tileRow = Object.entries(tileValues)
+    .map(([typeId, value]) => {
+      const type = tileSet.types.find((entry) => entry.id === typeId) || tileSet.types[0];
+      const icon = shapeSvg(type.shape, type.fill, type.stroke);
+      return `<li class="help-row"><span class="help-icon">${icon}</span><span><strong>${type.id}</strong>: ${value} points</span></li>`;
+    })
     .join("");
   const bonuses = Object.entries(bonusByLength)
     .sort((a, b) => Number(a[0]) - Number(b[0]))
     .map(([length, bonus]) => `<li>Match ${length}: +${bonus} bonus</li>`)
     .join("");
+  const powerStyle = (type) => visuals.styles?.[type] || {};
+  const powerIcon = (type) => {
+    const style = powerStyle(type);
+    return shapeSvg(style.shape || "circle", style.fill || "#ddd", style.stroke || "#222");
+  };
   return `
-    <div><strong>Score Basics</strong></div>
-    <div>Every tile in a match adds its base value.</div>
-    <ul>${rows || "<li>No tile values configured</li>"}</ul>
-    <div><strong>Match Bonuses</strong></div>
-    <ul>${bonuses || "<li>No bonuses configured</li>"}</ul>
-    <div class="note">Longer matches stack base points plus the listed bonus.</div>
+    <div class="help-tabs" role="tablist" aria-label="Scoring guide tabs">
+      <button class="help-tab is-active" type="button" role="tab" aria-selected="true" data-tab="scoring">Score Basics</button>
+      <button class="help-tab" type="button" role="tab" aria-selected="false" data-tab="bonuses">Match Bonuses</button>
+      <button class="help-tab" type="button" role="tab" aria-selected="false" data-tab="powerups">Power-Ups</button>
+    </div>
+    <div class="help-panel" data-panel="scoring">
+      <div class="help-heading"><strong>Score Basics</strong></div>
+      <div>Every tile in a match adds its base value.</div>
+      <ul class="help-list">${tileRow || "<li>No tile values configured</li>"}</ul>
+    </div>
+    <div class="help-panel" data-panel="bonuses" hidden>
+      <div class="help-heading"><strong>Match Bonuses</strong></div>
+      <ul class="help-list">${bonuses || "<li>No bonuses configured</li>"}</ul>
+      <div class="note">Longer matches stack base points plus the listed bonus.</div>
+    </div>
+    <div class="help-panel" data-panel="powerups" hidden>
+      <div class="help-heading"><strong>Power-Ups</strong></div>
+      <ul class="help-list">
+        <li class="help-row"><span class="help-icon">${powerIcon(match4Type)}</span><span><strong>${match4Type}</strong>: created by a Match 4 of the same color.</span></li>
+        <li class="help-row"><span class="help-icon">${powerIcon(match5Type)}</span><span><strong>${match5Type}</strong>: created by a Match 5 of the same color.</span></li>
+        <li class="help-row"><span class="help-icon">${powerIcon("void")}</span><span><strong>Void</strong>: match 4 ${match4Type}s to create. Pulls tiles in a 3x3 for ${formatDuration(voidConfig.durationMs || 3000)}.</span></li>
+        <li class="help-row"><span class="help-icon">${powerIcon("tornado")}</span><span><strong>Tornado</strong>: match 4 ${match5Type}s to create. Clears a random path for ${formatDuration(tornadoConfig.durationMs || 3000)}.</span></li>
+      </ul>
+      <div class="note">Void and Tornado are color-agnostic.</div>
+    </div>
   `;
+}
+
+function setHelpTab(tabId) {
+  if (!helpContent) return;
+  const tabs = helpContent.querySelectorAll(".help-tab");
+  const panels = helpContent.querySelectorAll(".help-panel");
+  tabs.forEach((tab) => {
+    const isActive = tab.dataset.tab === tabId;
+    tab.classList.toggle("is-active", isActive);
+    tab.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  panels.forEach((panel) => {
+    const isActive = panel.dataset.panel === tabId;
+    panel.hidden = !isActive;
+  });
+}
+
+function setupHelpTabs() {
+  if (helpTabsInitialized || !helpContent) return;
+  helpContent.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.classList.contains("help-tab")) {
+      const tabId = target.dataset.tab;
+      if (tabId) setHelpTab(tabId);
+    }
+  });
+  helpTabsInitialized = true;
 }
 
 function openHelp() {
   if (!helpModal) return;
   if (helpContent) helpContent.innerHTML = buildHelpContent();
+  setupHelpTabs();
+  setHelpTab("scoring");
+  sizeHelpContent();
   helpModal.hidden = false;
 }
 
 function closeHelp() {
   if (!helpModal) return;
   helpModal.hidden = true;
+}
+
+function openMenu() {
+  if (!menuPanel || !menuButton) return;
+  menuPanel.hidden = false;
+  menuButton.setAttribute("aria-expanded", "true");
+}
+
+function closeMenu() {
+  if (!menuPanel || !menuButton) return;
+  menuPanel.hidden = true;
+  menuButton.setAttribute("aria-expanded", "false");
+}
+
+function toggleMenu() {
+  if (!menuPanel) return;
+  if (menuPanel.hidden) {
+    openMenu();
+  } else {
+    closeMenu();
+  }
 }
 function getConfigUrl() {
   return new URL("../assets/config/gameplay.json", window.location.href);
@@ -179,6 +337,7 @@ function startDrag(event) {
   const { row, col } = pickLineIndex(boardPos.x, boardPos.y);
   const tile = state.grid[row]?.[col];
   if (tile) tile.tapImpactStart = state.now;
+  state.preselect = { row, col, startedAt: state.now };
   setStatus("Selecting line...");
 }
 
@@ -197,6 +356,7 @@ function updateDrag(event) {
       return;
     }
     pointerState.axis = Math.abs(dx) >= Math.abs(dy) ? "row" : "col";
+    state.preselect = null;
     const boardPos = screenToBoard(pointerState.startX, pointerState.startY);
     const { row, col } = pickLineIndex(boardPos.x, boardPos.y);
     pointerState.index = pointerState.axis === "row" ? row : col;
@@ -225,6 +385,7 @@ function updateDrag(event) {
 function endDrag(event) {
   if (pointerState.id !== event.pointerId) return;
   if (isInputLocked({ snapping: state.snapping, cascadeActive: state.cascade.active })) return;
+  state.preselect = null;
 
   const { cell } = getBoardMetrics();
   const axis = pointerState.axis;
@@ -262,11 +423,46 @@ function endDrag(event) {
   state.dragging = null;
 }
 
-function drawTile(x, y, size, tile, config) {
-  const baseFill = config.render?.tileBase || "#12110f";
+function hexToRgba(hex, alpha) {
+  if (!hex || typeof hex !== "string") return null;
+  const normalized = hex.replace("#", "");
+  if (normalized.length !== 6) return null;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getTileBackground(tile, config, gridPos) {
+  const render = config.render || {};
+  const restFill = render.tileBaseRest || "transparent";
+  const dragFill = render.tileBaseDrag || restFill;
+  const dragging = Boolean(state.dragging || state.snapping);
+  if (dragging) return dragFill;
+  const proximity = state.config.vfx?.proximity;
+  if (proximity?.enabled && gridPos) {
+    const key = `${gridPos.row},${gridPos.col}`;
+    const entry = state.vfx.proximity.get(key);
+    if (entry && entry.untilMs > state.now) {
+      if (proximity.useTileColor && tile) {
+        const tint = hexToRgba(getTileFillColor(tile, config), proximity.opacity ?? 0.3);
+        if (tint) return tint;
+      }
+      const alpha = proximity.opacity ?? 0.3;
+      return `rgba(255, 255, 255, ${alpha})`;
+    }
+  }
+  return restFill;
+}
+
+function drawTile(x, y, size, tile, config, gridPos) {
+  const baseFill = getTileBackground(tile, config, gridPos);
   if (!tile) {
-    ctx.fillStyle = baseFill;
-    ctx.fillRect(x, y, size, size);
+    if (baseFill && baseFill !== "transparent") {
+      ctx.fillStyle = baseFill;
+      ctx.fillRect(x, y, size, size);
+    }
     return;
   }
   const variantMode =
@@ -287,30 +483,68 @@ function drawTile(x, y, size, tile, config) {
   const centerY = y + size / 2;
   const tapConfig = config.physics?.tap || TAP_SCALE_FALLBACK;
   const scale = computeTapScale(state.now, tile.tapImpactStart, tapConfig.scaleDurationMs, tapConfig.scaleDown);
+  const rotationConfig = config.powerUps?.visuals?.rotation;
+  const shouldRotate = tile.powerUp && rotationConfig?.enabled;
+  const rotationRadians = shouldRotate
+    ? (state.now * (rotationConfig.radiansPerMs || 0)) % (Math.PI * 2)
+    : 0;
 
   ctx.save();
   ctx.translate(centerX, centerY);
   ctx.scale(scale, scale);
   ctx.translate(-centerX, -centerY);
-  ctx.fillStyle = baseFill;
-  ctx.fillRect(x, y, size, size);
+  if (baseFill && baseFill !== "transparent") {
+    ctx.fillStyle = baseFill;
+    ctx.fillRect(x, y, size, size);
+  }
 
+  if (shouldRotate) {
+    ctx.translate(centerX, centerY);
+    ctx.rotate(rotationRadians);
+    ctx.translate(-centerX, -centerY);
+  }
   drawShape(shape, centerX, centerY, iconSize / 2, fill, stroke);
 
+  if (tile.powerUp) {
+    const dotConfig = config.powerUps?.visuals?.coreDot;
+    const dotTypes = dotConfig?.types || [];
+    if (dotConfig?.enabled && dotTypes.includes(tile.powerUp.type)) {
+      const colors = dotConfig.colors || [];
+      const cycleMs = Math.max(dotConfig.cycleMs || 0, 1);
+      const sizeRatio = dotConfig.sizeRatio || 0.2;
+      const dotSize = iconSize * sizeRatio;
+      const colorIndex = colors.length
+        ? Math.floor((state.now / cycleMs) % colors.length)
+        : 0;
+      const dotColor = colors[colorIndex] || "#fff";
+      ctx.fillStyle = dotColor;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, dotSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   if (variantMode === "powerup") {
-    const badgeText = getPowerUpBadgeText(tile, config);
-    const style = badgeText
-      ? {
-          ...config.variantStyle,
-          badge: {
-            ...config.variantStyle.badge,
-            text: badgeText,
-          },
-        }
-      : config.variantStyle;
+    const style = {
+      ...config.variantStyle,
+      badge: {
+        ...config.variantStyle.badge,
+        enabled: false,
+      },
+    };
     drawVariantFrame(x, y, size, style);
   }
   ctx.restore();
+}
+
+function getTileFillColor(tile, config) {
+  if (!tile) return "#fff";
+  const tileSet = getActiveTileSet(config);
+  const type = tileSet.types.find((entry) => entry.id === tile.typeId) || tileSet.types[0];
+  const powerUpStyle = tile.powerUp
+    ? config.powerUps?.visuals?.styles?.[tile.powerUp.type] || null
+    : null;
+  return powerUpStyle?.fill || type.fill;
 }
 
 function drawShape(shape, cx, cy, radius, fill, stroke) {
@@ -420,6 +654,9 @@ function drawGrid() {
   ctx.fillStyle = state.config.render.background;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  ctx.save();
+  ctx.translate(state.vfx.shakeOffset.x, state.vfx.shakeOffset.y);
+
   ctx.fillStyle = state.config.render.panel;
   ctx.fillRect(originX - 6, originY - 6, boardWidth + 12, boardHeight + 12);
 
@@ -435,7 +672,7 @@ function drawGrid() {
       if (tile && animatedTiles.has(tile)) continue;
       const x = originX + c * cell;
       const y = originY + r * cell;
-      if (tile) tilesToDraw.push({ tile, x, y });
+      if (tile) tilesToDraw.push({ tile, x, y, row: r, col: c });
     }
   }
 
@@ -445,6 +682,16 @@ function drawGrid() {
 
   if (state.dragging) {
     drawLineHighlight(state.dragging.axis, state.dragging.index);
+  } else if (state.preselect && !state.snapping) {
+    const affordance = state.config.input?.affordance;
+    if (affordance?.enabled) {
+      const color = affordance.color || "#f6d36a";
+      const opacity = Number.isFinite(affordance.opacity) ? affordance.opacity : 0.08;
+      drawLineHighlight("row", state.preselect.row, { color, opacity });
+      if (affordance.showBothAxis) {
+        drawLineHighlight("col", state.preselect.col, { color, opacity });
+      }
+    }
   }
 
   if (state.animation?.tiles) {
@@ -454,7 +701,7 @@ function drawGrid() {
       const progress = state.animation.progresses[entry.index] ?? 0;
       const x = entry.from.x + (entry.to.x - entry.from.x) * progress;
       const y = entry.from.y + (entry.to.y - entry.from.y) * progress;
-      tilesToDraw.push({ tile, x, y });
+      tilesToDraw.push({ tile, x, y, row: entry.to.row, col: entry.to.col });
     });
   }
 
@@ -470,16 +717,196 @@ function drawGrid() {
       entry.y + offset.y,
       state.config.board.tileSize,
       entry.tile,
-      state.config
+      state.config,
+      { row: entry.row, col: entry.col }
     );
+  });
+
+  if (
+    state.config.debug?.matchPreview &&
+    !state.dragging &&
+    !state.snapping &&
+    !state.cascade.active
+  ) {
+    drawMatchPreview();
+  }
+
+  drawParticles();
+  drawTextBursts();
+
+  ctx.restore();
+
+  if (state.config.debug?.vfxStats) {
+    drawVfxStats();
+  }
+}
+
+function drawMatchPreview() {
+  const matches = findMatches(state.grid);
+  if (!matches.size) return;
+  const { cell } = getBoardMetrics();
+  const { x: originX, y: originY } = boardOrigin();
+  ctx.save();
+  ctx.strokeStyle = "rgba(90, 76, 67, 0.45)";
+  ctx.lineWidth = 2;
+  matches.forEach((key) => {
+    const [row, col] = key.split(",").map(Number);
+    const x = originX + col * cell + 2;
+    const y = originY + row * cell + 2;
+    ctx.strokeRect(x, y, cell - 4, cell - 4);
+  });
+  ctx.restore();
+}
+
+function drawVfxStats() {
+  ctx.save();
+  ctx.fillStyle = "rgba(34, 34, 34, 0.7)";
+  ctx.font = "11px Trebuchet MS";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "top";
+  const label = `particles: ${state.vfx.particles.length} (dropped ${state.vfx.dropped})`;
+  ctx.fillText(label, canvas.width - 8, 8);
+  ctx.restore();
+}
+
+function getCellCenter(row, col) {
+  const { cell } = getBoardMetrics();
+  const { x: originX, y: originY } = boardOrigin();
+  return {
+    x: originX + col * cell + state.config.board.tileSize / 2,
+    y: originY + row * cell + state.config.board.tileSize / 2,
+  };
+}
+
+function emitMatchClearVfx(runs) {
+  const vfx = state.config.vfx?.matchClear;
+  if (!vfx?.enabled) return;
+  const { cell } = getBoardMetrics();
+  const { x: originX, y: originY } = boardOrigin();
+  runs.forEach((run) => {
+    const centerCell = run.cells[Math.floor(run.cells.length / 2)];
+    const centerTile = state.grid[centerCell.row]?.[centerCell.col];
+    const center = {
+      x: originX + centerCell.col * cell + state.config.board.tileSize / 2,
+      y: originY + centerCell.row * cell + state.config.board.tileSize / 2,
+    };
+    const color = getTileFillColor(centerTile, state.config);
+    const burstConfig = {
+      count: vfx.burstCount,
+      lifeMs: vfx.burstLifeMs,
+      sizePx: vfx.burstSizePx,
+      speedPxPerMs: vfx.burstSpeedPxPerMs,
+      spreadRadians: Math.PI * 2,
+      colorPalette: vfx.burstColorMode === "tile" ? [color] : undefined,
+    };
+    spawnParticles(center, burstConfig);
+    if (vfx.directional?.enabled && run.length >= 4) {
+      const dirConfig = {
+        count: Math.max(4, Math.floor((vfx.burstCount || 10) / 2)),
+        lifeMs: vfx.burstLifeMs,
+        sizePx: vfx.burstSizePx,
+        speedPxPerMs: vfx.directional.speedPxPerMs ?? vfx.burstSpeedPxPerMs,
+        spreadRadians: vfx.directional.spreadRadians ?? 0.8,
+        colorPalette: vfx.burstColorMode === "tile" ? [color] : undefined,
+      };
+      if (run.orientation === "row") {
+        spawnParticles(center, { ...dirConfig, startAngle: 0 });
+        spawnParticles(center, { ...dirConfig, startAngle: Math.PI });
+      } else {
+        spawnParticles(center, { ...dirConfig, startAngle: -Math.PI / 2 });
+        spawnParticles(center, { ...dirConfig, startAngle: Math.PI / 2 });
+      }
+    }
   });
 }
 
-function drawLineHighlight(axis, index) {
+function emitMatchTextBursts(runs, matchPoints) {
+  const vfx = state.config.vfx?.textBurst;
+  if (!vfx?.enabled) return;
+  const messages = vfx.messages || {};
+  runs.forEach((run) => {
+    if (run.length < 4) return;
+    const label = run.length >= 5 ? messages.match5 : messages.match4;
+    if (!label) return;
+    const centerCell = run.cells[Math.floor(run.cells.length / 2)];
+    spawnTextBurst(label, getCellCenter(centerCell.row, centerCell.col));
+  });
+  if (matchPoints >= (vfx.scoreThreshold ?? 1000) && messages.bigScore) {
+    const center = getCellCenter(Math.floor(state.rows / 2), Math.floor(state.cols / 2));
+    spawnTextBurst(messages.bigScore, center, { sizePx: (vfx.sizePx || 16) * 1.1 });
+  }
+  if (runs.length >= 2 && messages.super) {
+    const center = getCellCenter(Math.floor(state.rows / 2), Math.floor(state.cols / 2));
+    spawnTextBurst(messages.super, center, { sizePx: (vfx.sizePx || 16) * 1.2 });
+  }
+}
+
+function emitPowerUpCreateVfx(position, powerUpType) {
+  const vfx = state.config.vfx?.powerUp;
+  if (!vfx) return;
+  const tile = state.grid[position.row]?.[position.col];
+  const color = getTileFillColor(tile, state.config);
+  spawnParticles(getCellCenter(position.row, position.col), {
+    count: vfx.createBurstCount,
+    lifeMs: vfx.createBurstLifeMs,
+    sizePx: vfx.explosionSizePx ?? 3,
+    speedPxPerMs: (vfx.explosionSpeedPxPerMs ?? 0.2) * 0.6,
+    spreadRadians: Math.PI * 2,
+    colorPalette: [color],
+  });
+}
+
+function emitPowerUpActivateVfx(position, powerUpType) {
+  const vfx = state.config.vfx?.powerUp;
+  if (!vfx) return;
+  const tile = state.grid[position.row]?.[position.col];
+  const baseColor = getTileFillColor(tile, state.config);
+  const colors = ["void", "tornado"].includes(powerUpType)
+    ? vfx.fireColors || [baseColor]
+    : [baseColor];
+  const center = getCellCenter(position.row, position.col);
+  spawnParticles(center, {
+    count: vfx.activateBurstCount,
+    lifeMs: vfx.activateBurstLifeMs,
+    sizePx: vfx.explosionSizePx ?? 3,
+    speedPxPerMs: vfx.explosionSpeedPxPerMs ?? 0.22,
+    spreadRadians: Math.PI * 2,
+    colorPalette: colors,
+  });
+  if (["void", "tornado"].includes(powerUpType)) {
+    spawnParticles(center, {
+      count: vfx.explosionCount,
+      lifeMs: vfx.explosionLifeMs,
+      sizePx: vfx.explosionSizePx ?? 4,
+      speedPxPerMs: vfx.explosionSpeedPxPerMs ?? 0.24,
+      spreadRadians: Math.PI * 2,
+      colorPalette: colors,
+    });
+  }
+}
+
+function emitPowerUpTrailVfx(position, powerUpType) {
+  const vfx = state.config.vfx?.powerUp;
+  if (!vfx) return;
+  const colors = vfx.fireColors || ["#fff"];
+  spawnParticles(getCellCenter(position.row, position.col), {
+    count: Math.max(2, Math.floor((vfx.activateBurstCount || 12) / 6)),
+    lifeMs: vfx.trailLifeMs,
+    sizePx: vfx.trailSizePx,
+    speedPxPerMs: vfx.trailSpeedPxPerMs,
+    spreadRadians: Math.PI * 2,
+    colorPalette: colors,
+  });
+}
+
+function drawLineHighlight(axis, index, options = {}) {
   const { cell, boardWidth, boardHeight } = getBoardMetrics();
   const { x: originX, y: originY } = boardOrigin();
+  const color = options.color || "#f6d36a";
+  const opacity = Number.isFinite(options.opacity) ? options.opacity : 0.12;
   ctx.save();
-  ctx.fillStyle = "rgba(246, 211, 106, 0.12)";
+  ctx.fillStyle = color;
+  ctx.globalAlpha = opacity;
   if (axis === "row") {
     ctx.fillRect(originX, originY + index * cell, boardWidth, cell);
   } else {
@@ -501,7 +928,10 @@ function drawActiveLine(active) {
       const wrapped = ((base + offsetPx) % total + total) % total;
       const x = originX + wrapped;
       const y = originY + index * cell;
-      drawTile(x, y, state.config.board.tileSize, state.grid[index][c], state.config);
+      drawTile(x, y, state.config.board.tileSize, state.grid[index][c], state.config, {
+        row: index,
+        col: c,
+      });
     }
   } else if (axis === "col") {
     const total = state.rows * cell;
@@ -510,14 +940,23 @@ function drawActiveLine(active) {
       const wrapped = ((base + offsetPx) % total + total) % total;
       const x = originX + index * cell;
       const y = originY + wrapped;
-      drawTile(x, y, state.config.board.tileSize, state.grid[r][index], state.config);
+      drawTile(x, y, state.config.board.tileSize, state.grid[r][index], state.config, {
+        row: r,
+        col: index,
+      });
     }
   }
 }
 
 function step(timestamp) {
+  const deltaMs = state.lastFrameTime ? timestamp - state.lastFrameTime : 16;
+  state.lastFrameTime = timestamp;
   state.now = timestamp;
   updateAnimation(timestamp);
+  updateParticles(deltaMs);
+  updateTextBursts(deltaMs);
+  updateShake(deltaMs);
+  updateProximity();
   if (state.snapping) {
     const elapsed = timestamp - state.snapping.start;
     const t = clamp(elapsed / state.snapping.duration, 0, 1);
@@ -750,27 +1189,21 @@ function easeCascade(t, elasticity, decel) {
   return Math.min(Math.max(base - wobble, 0), 1);
 }
 
-function scoreMatches(runs) {
+function scoreMatches(runs, grid) {
   const scoring = state.config.scoring || {};
   const tileValues = scoring.tileValues || {};
   const bonusByLength = scoring.bonusByLength || {};
   let points = 0;
   runs.forEach((run) => {
-    const baseValue = tileValues[run.typeId] ?? 0;
-    points += baseValue * run.length;
+    run.cells.forEach((cell) => {
+      const tile = grid[cell.row]?.[cell.col];
+      const baseValue = tileValues[tile?.typeId] ?? 0;
+      points += baseValue;
+    });
     const bonus = bonusByLength[String(run.length)] ?? 0;
     points += bonus;
   });
   return points;
-}
-
-function getPowerUpBadgeText(tile, config) {
-  const visuals = config.powerUps?.visuals || {};
-  if (!tile.powerUp) return null;
-  if (tile.powerUp.type === "line-clear") return visuals.lineClearBadge || "L";
-  if (tile.powerUp.type === "color-clear") return visuals.colorClearBadge || "C";
-  if (tile.powerUp.type === "mega") return visuals.megaBadge || "M";
-  return null;
 }
 
 function computeTapScale(now, tapStart, durationMs, scaleDown) {
@@ -830,123 +1263,224 @@ function computeRepulsionOffsets(entries, tileSize, physics = {}) {
   return offsets;
 }
 
+function spawnParticles(origin, overrides = {}) {
+  const vfx = state.config.vfx || {};
+  if (vfx.enabled === false) return;
+  const defaults = vfx.default || {};
+  const count = overrides.count ?? defaults.count ?? 0;
+  const maxParticles = vfx.maxParticles ?? 0;
+  const colors = overrides.colorPalette || defaults.colorPalette || ["#fff"];
+  const lifeMs = overrides.lifeMs ?? defaults.lifeMs ?? 600;
+  const sizePx = overrides.sizePx ?? defaults.sizePx ?? 3;
+  const speed = overrides.speedPxPerMs ?? defaults.speedPxPerMs ?? 0.15;
+  const spread = overrides.spreadRadians ?? defaults.spreadRadians ?? Math.PI * 2;
+  const gravity = overrides.gravityPxPerMs ?? vfx.gravityPxPerMs ?? 0;
+  const alphaFalloff = overrides.alphaFalloff ?? vfx.alphaFalloff ?? 0;
+  const startAngle = overrides.startAngle ?? -Math.PI / 2;
+
+  for (let i = 0; i < count; i += 1) {
+    if (state.vfx.particles.length >= maxParticles) {
+      state.vfx.dropped += 1;
+      break;
+    }
+    const angle = startAngle + (Math.random() - 0.5) * spread;
+    const velocity = speed * (0.6 + Math.random() * 0.8);
+    const color = colors[Math.floor(Math.random() * colors.length)] || "#fff";
+    state.vfx.particles.push({
+      x: origin.x,
+      y: origin.y,
+      vx: Math.cos(angle) * velocity,
+      vy: Math.sin(angle) * velocity,
+      lifeMs,
+      ageMs: 0,
+      sizePx: sizePx * (0.7 + Math.random() * 0.6),
+      color,
+      gravity,
+      alphaFalloff,
+    });
+  }
+}
+
+function updateParticles(deltaMs) {
+  const particles = state.vfx.particles;
+  for (let i = particles.length - 1; i >= 0; i -= 1) {
+    const p = particles[i];
+    p.ageMs += deltaMs;
+    if (p.ageMs >= p.lifeMs) {
+      particles.splice(i, 1);
+      continue;
+    }
+    p.vy += p.gravity * deltaMs;
+    p.x += p.vx * deltaMs;
+    p.y += p.vy * deltaMs;
+  }
+}
+
+function markProximity(center, radius, durationMs) {
+  const proximity = state.config.vfx?.proximity;
+  if (!proximity?.enabled) return;
+  const untilMs = state.now + durationMs;
+  for (let r = center.row - radius; r <= center.row + radius; r += 1) {
+    for (let c = center.col - radius; c <= center.col + radius; c += 1) {
+      if (r < 0 || c < 0 || r >= state.rows || c >= state.cols) continue;
+      state.vfx.proximity.set(`${r},${c}`, { untilMs });
+    }
+  }
+}
+
+function updateProximity() {
+  for (const [key, entry] of state.vfx.proximity.entries()) {
+    if (entry.untilMs <= state.now) {
+      state.vfx.proximity.delete(key);
+    }
+  }
+}
+
+function drawParticles() {
+  const particles = state.vfx.particles;
+  if (!particles.length) return;
+  ctx.save();
+  particles.forEach((p) => {
+    const lifeRatio = Math.min(Math.max(p.ageMs / p.lifeMs, 0), 1);
+    let alpha = 1 - lifeRatio;
+    if (p.alphaFalloff) {
+      alpha = Math.max(0, alpha - p.alphaFalloff * p.ageMs);
+    }
+    if (alpha <= 0) return;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.sizePx / 2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+function triggerShake(intensityPx, durationMs) {
+  const shake = state.vfx.shake;
+  shake.timeLeftMs = Math.max(shake.timeLeftMs, durationMs);
+  shake.durationMs = Math.max(shake.durationMs, durationMs);
+  shake.intensityPx = Math.max(shake.intensityPx, intensityPx);
+}
+
+function updateShake(deltaMs) {
+  const shake = state.vfx.shake;
+  if (shake.timeLeftMs <= 0) {
+    state.vfx.shakeOffset = { x: 0, y: 0 };
+    return;
+  }
+  shake.timeLeftMs = Math.max(0, shake.timeLeftMs - deltaMs);
+  const t = shake.durationMs > 0 ? shake.timeLeftMs / shake.durationMs : 0;
+  const intensity = shake.intensityPx * t;
+  state.vfx.shakeOffset = {
+    x: (Math.random() * 2 - 1) * intensity,
+    y: (Math.random() * 2 - 1) * intensity,
+  };
+  if (shake.timeLeftMs === 0) {
+    shake.durationMs = 0;
+    shake.intensityPx = 0;
+  }
+}
+
+function spawnTextBurst(text, position, overrides = {}) {
+  if (!text) return;
+  const vfx = state.config.vfx?.textBurst;
+  if (!vfx?.enabled) return;
+  const lifeMs = overrides.lifeMs ?? vfx.lifeMs ?? 900;
+  const sizePx = overrides.sizePx ?? vfx.sizePx ?? 16;
+  const velocity = overrides.velocityPxPerMs ?? vfx.velocityPxPerMs ?? 0.05;
+  state.vfx.textBursts.push({
+    text,
+    x: position.x,
+    y: position.y,
+    vx: (Math.random() - 0.5) * velocity,
+    vy: -velocity * (0.8 + Math.random() * 0.6),
+    lifeMs,
+    ageMs: 0,
+    sizePx,
+  });
+}
+
+function updateTextBursts(deltaMs) {
+  const bursts = state.vfx.textBursts;
+  for (let i = bursts.length - 1; i >= 0; i -= 1) {
+    const burst = bursts[i];
+    burst.ageMs += deltaMs;
+    if (burst.ageMs >= burst.lifeMs) {
+      bursts.splice(i, 1);
+      continue;
+    }
+    burst.x += burst.vx * deltaMs;
+    burst.y += burst.vy * deltaMs;
+  }
+}
+
+function drawTextBursts() {
+  const bursts = state.vfx.textBursts;
+  if (!bursts.length) return;
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  bursts.forEach((burst) => {
+    const lifeRatio = Math.min(Math.max(burst.ageMs / burst.lifeMs, 0), 1);
+    const alpha = Math.max(0, 1 - lifeRatio);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(34, 34, 34, 0.9)";
+    ctx.font = `bold ${burst.sizePx}px Trebuchet MS`;
+    ctx.fillText(burst.text, burst.x, burst.y);
+  });
+  ctx.restore();
+}
+
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function resolveCascade(matchSet) {
-  const animations = state.config.animations || {};
-  const matchDelay = animations.matchResolveMs ?? 120;
-  const cascadeDelay = animations.cascadeMs ?? 180;
-  const tileTypes = getActiveTileSet(state.config).types;
-  const variant = state.config.tile.variant;
-  const runs = findMatchRuns(state.grid);
-  const powerUps = state.config.powerUps || {};
-  const clearSet = new Set(matchSet);
-  const reservedSpawnCells = new Set();
-  const powerUpCells = [];
-  const runOrientation = new Map();
+function getPowerUpMatchId(tile, powerUpType, config) {
+  if (!tile || !powerUpType) return null;
+  const rules = config.powerUps?.matchRules || {};
+  const colorAgnostic = rules.colorAgnosticTypes || [];
+  if (colorAgnostic.includes(powerUpType)) return powerUpType;
+  return `${powerUpType}:${tile.typeId}`;
+}
 
-  runs.forEach((run) => {
-    run.cells.forEach((cell) => {
-      const key = `${cell.row},${cell.col}`;
-      if (!runOrientation.has(key)) {
-        runOrientation.set(key, run.orientation);
-      }
-    });
-  });
+function applyPowerUp(tile, powerUpType, config, position) {
+  if (!tile) return;
+  tile.powerUp = { type: powerUpType };
+  tile.variant = "powerup";
+  tile.matchId = getPowerUpMatchId(tile, powerUpType, config);
+  if (position) {
+    emitPowerUpCreateVfx(position, powerUpType);
+  }
+}
 
-  matchSet.forEach((key) => {
+function buildAreaClearSet(centerRow, centerCol, radius) {
+  const clearSet = new Set();
+  for (let r = centerRow - radius; r <= centerRow + radius; r += 1) {
+    for (let c = centerCol - radius; c <= centerCol + radius; c += 1) {
+      if (r < 0 || c < 0 || r >= state.rows || c >= state.cols) continue;
+      const tile = state.grid[r]?.[c];
+      if (tile) clearSet.add(`${r},${c}`);
+    }
+  }
+  return clearSet;
+}
+
+function scoreClearSet(clearSet, multiplier = 1) {
+  const scoring = state.config.scoring || {};
+  const tileValues = scoring.tileValues || {};
+  let points = 0;
+  clearSet.forEach((key) => {
     const [row, col] = key.split(",").map(Number);
     const tile = state.grid[row]?.[col];
-    if (tile?.powerUp) powerUpCells.push({ row, col, tile });
+    const baseValue = tileValues[tile?.typeId] ?? 0;
+    points += baseValue * multiplier;
   });
+  return Math.round(points);
+}
 
-  const comboMin = powerUps.combo?.minCount ?? 2;
-  const comboTriggered =
-    powerUps.combo?.enabled !== false &&
-    powerUps.mega?.enabled !== false &&
-    powerUpCells.length >= comboMin;
-  if (comboTriggered) {
-    const spawn = powerUpCells[0];
-    const spawnKey = `${spawn.row},${spawn.col}`;
-    const tile = state.grid[spawn.row][spawn.col];
-    if (tile) {
-      tile.powerUp = { type: "mega" };
-      tile.variant = "powerup";
-      reservedSpawnCells.add(spawnKey);
-      clearSet.delete(spawnKey);
-    }
-  }
-
-  const selectSpawnCell = (run) => run.cells[Math.floor(run.cells.length / 2)];
-
-  runs.forEach((run) => {
-    if (run.length === 4 && powerUps.match4?.enabled !== false) {
-      const spawnCell = selectSpawnCell(run);
-      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
-      if (!reservedSpawnCells.has(spawnKey)) {
-        const tile = state.grid[spawnCell.row][spawnCell.col];
-        if (tile) {
-          tile.powerUp = { type: powerUps.match4?.type || "line-clear" };
-          tile.variant = "powerup";
-          reservedSpawnCells.add(spawnKey);
-          clearSet.delete(spawnKey);
-        }
-      }
-    }
-    if (run.length === 5 && powerUps.match5?.enabled !== false) {
-      const spawnCell = selectSpawnCell(run);
-      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
-      if (!reservedSpawnCells.has(spawnKey)) {
-        const tile = state.grid[spawnCell.row][spawnCell.col];
-        if (tile) {
-          tile.powerUp = { type: powerUps.match5?.type || "color-clear" };
-          tile.variant = "powerup";
-          reservedSpawnCells.add(spawnKey);
-          clearSet.delete(spawnKey);
-        }
-      }
-    }
-  });
-
-  if (!comboTriggered && powerUps.enabled !== false) {
-    powerUpCells.forEach(({ row, col, tile }) => {
-      const key = `${row},${col}`;
-      if (!clearSet.has(key)) return;
-      if (tile.powerUp?.type === "line-clear") {
-        const orientation = runOrientation.get(key) || "row";
-        if (orientation === "row") {
-          for (let c = 0; c < state.cols; c += 1) {
-            clearSet.add(`${row},${c}`);
-          }
-        } else {
-          for (let r = 0; r < state.rows; r += 1) {
-            clearSet.add(`${r},${col}`);
-          }
-        }
-      } else if (tile.powerUp?.type === "color-clear") {
-        for (let r = 0; r < state.rows; r += 1) {
-          for (let c = 0; c < state.cols; c += 1) {
-            const cell = state.grid[r][c];
-            if (cell?.typeId === tile.typeId) {
-              clearSet.add(`${r},${c}`);
-            }
-          }
-        }
-      } else if (tile.powerUp?.type === "mega") {
-        for (let r = 0; r < state.rows; r += 1) {
-          for (let c = 0; c < state.cols; c += 1) {
-            clearSet.add(`${r},${c}`);
-          }
-        }
-      }
-    });
-  }
-
-  state.score += scoreMatches(runs);
-  updateScoreDisplay();
-  await delay(matchDelay);
+async function applyClearAndRefill(clearSet, tileTypes, variant, cascadeDelay) {
+  if (!clearSet.size) return;
   state.grid = clearMatches(state.grid, clearSet);
   drawGrid();
   await delay(cascadeDelay);
@@ -974,6 +1508,200 @@ async function resolveCascade(matchSet) {
   }
   await buildSpawnAnimation(spawnedTiles, postRefillPositions, cascadeDelay);
   updateStateExport();
+}
+
+function pickTornadoStep(position) {
+  const directions = [
+    { dr: 1, dc: 0 },
+    { dr: -1, dc: 0 },
+    { dr: 0, dc: 1 },
+    { dr: 0, dc: -1 },
+  ];
+  const options = directions.filter((dir) => {
+    const nextRow = position.row + dir.dr;
+    const nextCol = position.col + dir.dc;
+    return nextRow >= 0 && nextRow < state.rows && nextCol >= 0 && nextCol < state.cols;
+  });
+  if (!options.length) return position;
+  const choice = options[Math.floor(Math.random() * options.length)];
+  return { row: position.row + choice.dr, col: position.col + choice.dc };
+}
+
+async function runVoidEffect(origin, tileTypes, variant, cascadeDelay, config) {
+  const durationMs = config.durationMs ?? 3000;
+  const tickMs = config.tickMs ?? 240;
+  const radius = config.radius ?? 1;
+  const scoreMultiplier = config.scoreMultiplier ?? 1;
+  const proximity = state.config.vfx?.proximity;
+  const proximityRadius = proximity?.radius ?? radius + 1;
+  const proximityDuration = proximity?.durationMs ?? 300;
+  const endTime = performance.now() + durationMs;
+  while (performance.now() < endTime) {
+    const start = performance.now();
+    markProximity(origin, proximityRadius, proximityDuration);
+    const clearSet = buildAreaClearSet(origin.row, origin.col, radius);
+    if (clearSet.size) {
+      state.score += scoreClearSet(clearSet, scoreMultiplier);
+      updateScoreDisplay();
+      await applyClearAndRefill(clearSet, tileTypes, variant, cascadeDelay);
+    }
+    const elapsed = performance.now() - start;
+    const waitMs = tickMs - elapsed;
+    if (waitMs > 0) await delay(waitMs);
+  }
+}
+
+async function runTornadoEffect(origin, tileTypes, variant, cascadeDelay, config) {
+  const durationMs = config.durationMs ?? 3000;
+  const stepMs = config.stepMs ?? 220;
+  const clearRadius = config.clearRadius ?? 0;
+  const scoreMultiplier = config.scoreMultiplier ?? 1;
+  const proximity = state.config.vfx?.proximity;
+  const proximityRadius = proximity?.radius ?? 2;
+  const proximityDuration = proximity?.durationMs ?? 300;
+  const endTime = performance.now() + durationMs;
+  let position = { ...origin };
+  while (performance.now() < endTime) {
+    const start = performance.now();
+    markProximity(position, proximityRadius, proximityDuration);
+    const clearSet = buildAreaClearSet(position.row, position.col, clearRadius);
+    if (clearSet.size) {
+      state.score += scoreClearSet(clearSet, scoreMultiplier);
+      updateScoreDisplay();
+      await applyClearAndRefill(clearSet, tileTypes, variant, cascadeDelay);
+    }
+    emitPowerUpTrailVfx(position, "tornado");
+    position = pickTornadoStep(position);
+    const elapsed = performance.now() - start;
+    const waitMs = stepMs - elapsed;
+    if (waitMs > 0) await delay(waitMs);
+  }
+}
+
+async function resolveCascade(matchSet) {
+  const animations = state.config.animations || {};
+  const matchDelay = animations.matchResolveMs ?? 120;
+  const cascadeDelay = animations.cascadeMs ?? 180;
+  const tileTypes = getActiveTileSet(state.config).types;
+  const variant = state.config.tile.variant;
+  const runs = findMatchRuns(state.grid);
+  const powerUps = state.config.powerUps || {};
+  const clearSet = new Set(matchSet);
+  const reservedSpawnCells = new Set();
+  const powerUpCells = [];
+  const powerUpActivations = [];
+  const match4Type = powerUps.match4?.type || "square";
+  const match5Type = powerUps.match5?.type || "circle";
+  const upgradeConfig = powerUps.upgrades || {};
+  const upgradeMinRun = upgradeConfig.minRun ?? 4;
+  const knownPowerUps = new Set([match4Type, match5Type, "void", "tornado"]);
+
+  matchSet.forEach((key) => {
+    const [row, col] = key.split(",").map(Number);
+    const tile = state.grid[row]?.[col];
+    if (tile?.powerUp) powerUpCells.push({ row, col, tile });
+  });
+
+  const selectSpawnCell = (run) => run.cells[Math.floor(run.cells.length / 2)];
+
+  runs.forEach((run) => {
+    const matchId = run.matchId || run.typeId;
+    const matchType = matchId?.includes(":") ? matchId.split(":")[0] : matchId;
+    const runPowerUpType = knownPowerUps.has(matchType) ? matchType : null;
+    if (run.length >= upgradeMinRun && runPowerUpType === match4Type && upgradeConfig.squareToVoid) {
+      const spawnCell = selectSpawnCell(run);
+      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
+      if (!reservedSpawnCells.has(spawnKey) && powerUps.void?.enabled !== false) {
+        const tile = state.grid[spawnCell.row][spawnCell.col];
+        if (tile) {
+          applyPowerUp(tile, "void", state.config, spawnCell);
+          reservedSpawnCells.add(spawnKey);
+          clearSet.delete(spawnKey);
+        }
+      }
+      return;
+    }
+    if (run.length >= upgradeMinRun && runPowerUpType === match5Type && upgradeConfig.circleToTornado) {
+      const spawnCell = selectSpawnCell(run);
+      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
+      if (!reservedSpawnCells.has(spawnKey) && powerUps.tornado?.enabled !== false) {
+        const tile = state.grid[spawnCell.row][spawnCell.col];
+        if (tile) {
+          applyPowerUp(tile, "tornado", state.config, spawnCell);
+          reservedSpawnCells.add(spawnKey);
+          clearSet.delete(spawnKey);
+        }
+      }
+      return;
+    }
+    if (run.length === 4 && powerUps.match4?.enabled !== false && !runPowerUpType) {
+      const spawnCell = selectSpawnCell(run);
+      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
+      if (!reservedSpawnCells.has(spawnKey)) {
+        const tile = state.grid[spawnCell.row][spawnCell.col];
+        if (tile) {
+          applyPowerUp(tile, match4Type, state.config, spawnCell);
+          reservedSpawnCells.add(spawnKey);
+          clearSet.delete(spawnKey);
+        }
+      }
+    }
+    if (run.length === 5 && powerUps.match5?.enabled !== false && !runPowerUpType) {
+      const spawnCell = selectSpawnCell(run);
+      const spawnKey = `${spawnCell.row},${spawnCell.col}`;
+      if (!reservedSpawnCells.has(spawnKey)) {
+        const tile = state.grid[spawnCell.row][spawnCell.col];
+        if (tile) {
+          applyPowerUp(tile, match5Type, state.config, spawnCell);
+          reservedSpawnCells.add(spawnKey);
+          clearSet.delete(spawnKey);
+        }
+      }
+    }
+  });
+
+  if (powerUps.enabled !== false) {
+    powerUpCells.forEach(({ row, col, tile }) => {
+      const key = `${row},${col}`;
+      if (!clearSet.has(key)) return;
+      if (tile.powerUp?.type === "void" || tile.powerUp?.type === "tornado") {
+        powerUpActivations.push({ row, col, type: tile.powerUp.type });
+      }
+    });
+  }
+
+  const matchPoints = scoreMatches(runs, state.grid);
+  state.score += matchPoints;
+  updateScoreDisplay();
+  emitMatchClearVfx(runs);
+  emitMatchTextBursts(runs, matchPoints);
+  await delay(matchDelay);
+  await applyClearAndRefill(clearSet, tileTypes, variant, cascadeDelay);
+
+  if (powerUpActivations.length) {
+    const shakeConfig = state.config.vfx?.screenShake;
+    for (const activation of powerUpActivations) {
+      if (activation.type === "void") {
+        emitPowerUpActivateVfx(activation, "void");
+        if (shakeConfig?.enabled) {
+          triggerShake(shakeConfig.intensityPx ?? 4, shakeConfig.durationMs ?? 240);
+        }
+        await runVoidEffect(activation, tileTypes, variant, cascadeDelay, powerUps.void || {});
+      } else if (activation.type === "tornado") {
+        emitPowerUpActivateVfx(activation, "tornado");
+        if (shakeConfig?.enabled) {
+          triggerShake(shakeConfig.intensityPx ?? 4, shakeConfig.durationMs ?? 240);
+        }
+        await runTornadoEffect(
+          activation,
+          tileTypes,
+          variant,
+          cascadeDelay,
+          powerUps.tornado || {}
+        );
+      }
+    }
+  }
   const nextMatches = findMatches(state.grid);
   if (nextMatches.size > 0) {
     state.cascade.index += 1;
@@ -1061,6 +1789,20 @@ async function init() {
   resetButton.addEventListener("click", resetBoard);
   if (helpButton) helpButton.addEventListener("click", openHelp);
   if (helpClose) helpClose.addEventListener("click", closeHelp);
+  if (menuButton) menuButton.addEventListener("click", toggleMenu);
+  if (menuInfo) {
+    menuInfo.addEventListener("click", () => {
+      closeMenu();
+      openHelp();
+    });
+  }
+  document.addEventListener("click", (event) => {
+    if (!menuPanel || menuPanel.hidden) return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (menuPanel.contains(target) || menuButton?.contains(target)) return;
+    closeMenu();
+  });
   if (helpModal) {
     helpModal.addEventListener("click", (event) => {
       const target = event.target;
